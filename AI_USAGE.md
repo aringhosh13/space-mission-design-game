@@ -62,6 +62,16 @@ The TypeScript engine's 83 tests were not ported and do not establish native sim
 Claude's next task is the independent GDScript production simulation and its own native tests.
 Generated scenery is code-native geometry and shaders, not NASA imagery. No generated image, audio or video assets are bundled.
 
+## Claude native simulation port (branch `claude/godot-engine`)
+
+Claude (Claude Opus 5.5, via Claude Code) ported the mission simulation to GDScript in `godot/simulation/`
+(`mission_engine.gd`, `rules.gd`, `design.gd`, `evidence.gd`, `README.md`). The adapter no longer uses the preview.
+Claude also wrote the native tests and runner in `godot/tests/simulation/` and ran them, together with
+Codex's `tests/smoke.gd`, on the official Godot 4.7.2 Linux headless binary. Scenes, HUD, preview rules,
+the shared contract and project settings were not changed.
+All rule values, evidence ranges and false-positive chances are fictional balancing values, not NASA data.
+Differences from the preview are listed in `godot/simulation/README.md`.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
