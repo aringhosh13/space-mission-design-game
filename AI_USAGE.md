@@ -72,6 +72,28 @@ the shared contract and project settings were not changed.
 All rule values, evidence ranges and false-positive chances are fictional balancing values, not NASA data.
 Differences from the preview are listed in `godot/simulation/README.md`.
 
+## Claude spaceflight feature (branch `claude/spaceflight`)
+
+Claude (Claude Opus 5.5, via Claude Code) designed and wrote the spaceflight feature:
+
+- **Pure simulation modules:** `godot/simulation/ship_flight.gd`, `destinations.gd`, `travel.gd`, `expedition.gd`,
+  and the additive `create_surface_mission` in `mission_engine.gd`.
+- **Scenes and scripts:** everything in `godot/spaceflight/` and `godot/scenes/spaceflight/`.
+- **Tests:** `godot/tests/simulation/test_ship_flight.gd`, `test_travel.gd`, `test_mars_surface.gd`,
+  `test_expedition.gd` and `godot/tests/spaceflight/scene_checks.gd`.
+
+All ship, planet, terrain, sky, effect and UI visuals are procedural geometry and shaders generated in code.
+No external or AI-generated image, audio, model or font assets are bundled, and no NASA imagery or insignia is used.
+
+Real facts shown in game come from NASA and JPL pages listed in `godot/spaceflight/FACTS.md`; Claude
+retrieved them by web search on 2026-11-14. The only facts used in mechanics are the Moon and Mars surface
+gravities (they scale ascent and descent costs) and Mars's ~1.5 AU distance from the Sun (from which the
+×0.43 solar factor is derived). Every other number, the Aurora Delta region and the compressed map are
+fictional and labelled as such.
+
+Codex's rover, lunar world, main scene, HUD, preview rules and shared files were reused without modification.
+Claude ran the tests on the official Godot 4.7.2 Linux binary and reviewed offscreen screenshots of the scenes.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

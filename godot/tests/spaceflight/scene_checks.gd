@@ -139,3 +139,70 @@ func stage_3_mars_surface() -> void:
 	check(surface.try_board() and boarded.size() == 1, "Stage 3: G boards when the rover is at the ship")
 	demo.queue_free()
 	await frames(2)
+
+## Put the rover somewhere on the current surface and tell the surface scene (as driving would).
+func place_rover(game: Node, position: Vector3) -> void:
+	var surface: Node3D = game.current
+	surface.state.position = position
+	surface.rover.global_position = Vector3(position.x, surface.world.terrain_height(position.x, position.z) + 0.5, position.z)
+	surface.mission_changed.emit(surface.state)
+
+func investigate(game: Node, index: int) -> void:
+	var surface: Node3D = game.current
+	surface.state.energy = surface.state.max_energy
+	place_rover(game, surface.state.sites[index].position)
+	surface.act("scan")
+	surface.act("sample")
+
+func stage_4_expedition_loop() -> void:
+	var Destinations = load("res://simulation/destinations.gd")
+	var game: Node = load("res://scenes/spaceflight/expedition_demo.tscn").instantiate()
+	root.add_child(game)
+	await frames(5)
+	check(game.ui.active == "planning", "Stage 4: planning screen first")
+	check(game.start({"battery": "compact", "power": "solar", "instrument": "drill"}, "standard"), "Stage 4: expedition begins")
+	await frames(30)
+	check(game.current.destination_id == "moon" and game.current.world.get_script() == load("res://scripts/lunar_world.gd"), "Stage 4: starts on the Moon with Codex's lunar world")
+	# Explore the Moon.
+	investigate(game, 1)
+	place_rover(game, Vector3.ZERO)
+	game.current.act("transmit")
+	check(game.expedition.missions.moon.science_returned == 40, "Stage 4: lunar science returned by transmission")
+	# Board and take off.
+	place_rover(game, Destinations.get_def("moon").pad + Vector3(0, 0, 5))
+	check(game.current.try_board(), "Stage 4: G boards at the pad")
+	check(game.expedition.phase == "aboard" and game.ui.active == "aboard", "Stage 4: aboard screen")
+	var fuel_on_pad: float = game.expedition.ship.fuel
+	game.takeoff("mars")
+	await frames(45)
+	check(game.expedition.phase == "flight" and game.current.has_method("try_land"), "Stage 4: takeoff transition into space")
+	check(game.expedition.ship.fuel < fuel_on_pad, "Stage 4: ascent burned fuel")
+	# Fly to Mars on player-equivalent inputs and land.
+	var used: int = await fly_to(game.current, "mars")
+	check(used > 0, "Stage 4: flew to Mars")
+	check(game.current.try_land(), "Stage 4: landing accepted")
+	await frames(60)
+	check(game.expedition.location == "mars" and game.expedition.phase == "surface", "Stage 4: landed and rover deployed on Mars")
+	check(game.current.world.get_script() == load("res://spaceflight/mars_world.gd"), "Stage 4: Martian surface scene")
+	for i in range(3): investigate(game, i)
+	place_rover(game, Vector3.ZERO)
+	game.current.act("transmit")
+	check(game.expedition.missions.mars.science_returned == 60, "Stage 4: Mars scan data transmitted")
+	place_rover(game, Destinations.get_def("mars").pad + Vector3(0, 0, 5))
+	check(game.current.try_board(), "Stage 4: boards on Mars")
+	check(game.expedition.cores.size() == 3, "Stage 4: three sealed sample cores aboard")
+	game.takeoff("moon")
+	await frames(45)
+	check(game.expedition.phase == "flight", "Stage 4: lifted off from Mars")
+	used = await fly_to(game.current, "moon")
+	check(used > 0, "Stage 4: flew home")
+	check(game.current.try_land(), "Stage 4: landing at the Moon base")
+	await frames(60)
+	check(game.expedition.delivered_science == 105, "Stage 4: cores delivered home")
+	game.finish()
+	await frames(2)
+	check(game.ui.active == "report", "Stage 4: debrief shown")
+	var report: Dictionary = load("res://simulation/expedition.gd").report(game.expedition)
+	check(report.home and report.science_returned == 40 + 60 + 105, "Stage 4: debrief counts every returned unit (%d)" % report.science_returned)
+	game.queue_free()
+	await frames(2)
