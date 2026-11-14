@@ -34,14 +34,21 @@ New expeditions advance the seed during the same game session.
 
 ## Current implementation status
 
-The native adapter currently delegates to `preview/mission_preview.gd`. This is a temporary playable
-implementation, not a finished port of the independently tested TypeScript engine.
-The TypeScript prototype's 83 passing tests remain reference behavior; they do not prove the native code.
+On `codex/native-integration`, the native adapter uses Claude's independent GDScript simulation from PR #3.
+The former `preview/mission_preview.gd` remains a reference fixture, not the active simulation.
+The TypeScript prototype's 83 tests remain reference behavior; native coverage comes from the Godot tests.
 The native integration check covers launch immutability, station persistence, movement power,
 duplicate scans, sample/transmit flow, mission closure, terrain collision and keyboard driving.
 
-All scene geometry and numerical values are fictional educational content created with AI assistance.
-There are no real NASA terrain or resource measurements in this prototype. No NASA logos or insignia are included.
+The optional Moon → Mars → home expedition from PR #4 is available by opening
+`scenes/spaceflight/expedition_demo.tscn` and pressing F6. F5 still runs the lunar mission.
+Read [the integration review](INTEGRATION_REVIEW.md) for two reproduced issues that need fixes before
+making the expedition the default game, and [the flight instructions](spaceflight/README.md) for controls.
+
+All scene geometry, resource distributions and equipment balancing values are fictional educational content
+created with AI assistance. The flight expedition uses cited NASA facts for gravity and a derived solar factor;
+see [facts and simplifications](spaceflight/FACTS.md). There are no real NASA terrain or resource measurements.
+No NASA logos or insignia are included.
 Scenery is generated in code; there are no external artwork or texture dependencies.
 
 ## Native contract v1

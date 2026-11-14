@@ -102,6 +102,15 @@ fictional and labelled as such.
 Codex's rover, lunar world, main scene, HUD, preview rules and shared files were reused without modification.
 Claude ran the tests on the official Godot 4.7.2 Linux binary and reviewed offscreen screenshots of the scenes.
 
+## Codex native integration review
+
+Codex combined the Moon environment and Claude's PR #3/#4 on `codex/native-integration`, preserving both
+developers' work. Codex wrote `godot/tests/integration/expedition_smoke.gd`, a driven-and-flown scene check
+with runtime-error capture, and documented reproduced camera/transition defects in `godot/INTEGRATION_REVIEW.md`.
+The check uses real rover physics and simulated player inputs without teleporting or changing mission resources;
+it is automated verification, not a claim of human playtesting. Captured game views are engine renders of the
+AI-assisted procedural content. No new external artwork, NASA datasets or scientific observations were added.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
