@@ -127,6 +127,29 @@ Small craters, rocks, resources, buildings and fine detail remain AI-assisted fi
 The story/landing/Mars-weather/damage-rule implementation is assigned to Claude and is not claimed complete
 by the Moon work. No NASA imagery or insignia and no AI-generated raster/audio/video assets were added.
 
+## Claude First Light campaign (branch `claude/nasa-campaign`)
+
+Claude (Claude Opus 5.5, via Claude Code) wrote the campaign side of `godot/NASA_CAMPAIGN_HANDOFF.md`:
+
+- **Simulation:** `godot/simulation/campaign.gd` (story, objectives, checkpoints, recovery) and
+  `landing.gd` (player-controlled final descent with assist). In `mission_engine.gd`: time, Mars dust storms,
+  gentle impact damage and free repair. In `expedition.gd`: the landing phase, data relay and repair on
+  boarding. In `destinations.gd`: larger regions, shelter, storm pacing and NASA sources. Impact tuning in `rules.gd`.
+- **Scenes:** `godot/spaceflight/landing_scene.gd`, `mission_control.gd`, `checkpoint_beacons.gd` and
+  `scenes/spaceflight/campaign.tscn`. Updates to `expedition_game.gd`, `expedition_ui.gd`, `surface_scene.gd`,
+  `surface_hud.gd`, `mars_world.gd` (larger region, shelter, storm visuals) and `ship_model.gd` (descent thrusters).
+- **Docs:** `godot/shared/CAMPAIGN_CONTRACT.md` (the agreed additive keys, documented beside the contract;
+  `mission_contract.gd` unchanged), `godot/spaceflight/CAMPAIGN.md` and source updates in `FACTS.md`.
+- **Tests:** `tests/simulation/test_landing.gd`, `test_hazards.gd` and `test_campaign.gd`, updated region tests,
+  new scene checks, and `tests/spaceflight/campaign_route.gd` (a driven route with no position, energy or fuel edits).
+
+Claude checked the story framing against NASA's VIPER and Perseverance pages and the Mars dust-storm article on
+2026-11-14. The dust-storm article was read through search results, because the page needed an approval that
+could not be shown. The Artemis page was not opened, so no in-game fact relies on it alone. Mars terrain is
+procedural and inspired by delta landforms; no NASA elevation product is used for Mars. Every tuning value
+(storms, damage, landing envelope, assist, regions, checkpoints) is fictional and labelled. No Codex-owned file
+was edited. All visuals are procedural, generated in code; no external or AI-generated media are bundled.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

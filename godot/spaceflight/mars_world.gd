@@ -5,13 +5,28 @@ extends Node3D
 ## Look inspired by public descriptions of Mars (reddish rusted dust, thin dusty sky, a smaller Sun,
 ## two small moons). Landforms near each signal hint at what it might be; they reveal no hidden truth.
 const Contract = preload("res://shared/mission_contract.gd")
+const Destinations = preload("res://simulation/destinations.gd")
+const Beacons = preload("res://spaceflight/checkpoint_beacons.gd")
+## Same optional hooks as the lunar world: configure_extent(limit) before build(),
+## update_checkpoints(list) and set_weather(weather) afterwards.
 
 var marker_nodes: Dictionary = {}
 var station: Node3D
 var scanner_ring: MeshInstance3D
 var scan_age: float = 2.0
 var scan_origin: Vector3 = Vector3.ZERO
-var craters: Array = [Vector3(52, 9, -40), Vector3(-58, 12, -30), Vector3(-20, 7, 60)]
+var craters: Array = [Vector3(52, 9, -40), Vector3(-58, 12, -30), Vector3(-20, 7, 60), Vector3(150, 14, -120), Vector3(-160, 16, -40), Vector3(90, 11, 160)]
+var extent: float = 110.0
+var environment: Environment
+var sun: DirectionalLight3D
+var dust: CPUParticles3D
+var beacons: Node3D
+var weather_phase: String = "clear"
+var _route_points: Array[Vector3] = []
+
+## Called before build(): the terrain covers the playable limit plus a horizon margin.
+func configure_extent(limit: float) -> void:
+	extent = maxf(110.0, limit + 30.0)
 
 func terrain_height(x: float, z: float) -> float:
 	# Broad delta fan sloping gently toward the north-west, wind-aligned dunes and a few small craters.
@@ -54,6 +69,7 @@ func _environment() -> void:
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	var env := Environment.new()
+	environment = env
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -67,7 +83,7 @@ func _environment() -> void:
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	add_child(world_env)
-	var sun := DirectionalLight3D.new()
+	sun = DirectionalLight3D.new()
 	sun.light_color = Color(1.0, 0.86, 0.7)
 	sun.light_energy = 0.82   # dimmer than the lunar scene: Mars is ~1.5 AU from the Sun
 	sun.rotation_degrees = Vector3(-34, 128, 0)
@@ -77,8 +93,7 @@ func _environment() -> void:
 func _terrain() -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var resolution: int = 96
-	var extent: float = 110.0
+	var resolution: int = clampi(int(extent / 2.3), 96, 150)
 	var step_size: float = extent * 2.0 / resolution
 	for xi in range(resolution):
 		for zi in range(resolution):
@@ -108,10 +123,11 @@ func _terrain() -> void:
 
 func _rocks(rng: RandomNumberGenerator) -> void:
 	var materials: Array[StandardMaterial3D] = [_material(Color("5a3326")), _material(Color("7a4630")), _material(Color("3d2b27"))]
-	for i in range(260):
-		var x: float = rng.randf_range(-96, 96)
-		var z: float = rng.randf_range(-96, 96)
-		if Vector2(x, z).length() < 8.0 or Vector2(x, z + 11.0).length() < 7.0: continue
+	var span: float = extent - 14.0
+	for i in range(mini(900, int(260.0 * pow(span / 96.0, 2.0)))):
+		var x: float = rng.randf_range(-span, span)
+		var z: float = rng.randf_range(-span, span)
+		if Vector2(x, z).length() < 8.0 or Vector2(x, z + 11.0).length() < 7.0 or _near_route(x, z): continue
 		var shape: Mesh
 		if i % 3 == 0:
 			var prism := PrismMesh.new()
@@ -138,7 +154,7 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 	var layers: Array[Color] = [Color("8a4f33"), Color("a8653f"), Color("c08156"), Color("93583a"), Color("b47450")]
 	for i in range(22):
 		var angle: float = float(i) / 22.0 * TAU + rng.randf_range(-0.08, 0.08)
-		var radius: float = rng.randf_range(112.0, 126.0)
+		var radius: float = rng.randf_range(extent + 2.0, extent + 16.0)
 		var centre := Vector3(sin(angle) * radius, -3.0, cos(angle) * radius)
 		var width: float = rng.randf_range(14.0, 26.0)
 		var y: float = centre.y
@@ -150,10 +166,17 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 			slab.radial_segments = 7
 			_mesh(self, slab, Vector3(centre.x, y + slab.height * 0.5, centre.z), _material(layers[(i + layer) % layers.size()]))
 			y += slab.height
+	var rules: Dictionary = Destinations.surface_rules("mars")
+	var at_kind: Dictionary = {}
+	for template in rules.sites: at_kind[template.kind] = template.position
+	var ice: Vector3 = at_kind.get("ice", Vector3(-44, 0, 26))
+	var clay: Vector3 = at_kind.get("minerals", Vector3(41, 0, 21))
+	var delta: Vector3 = at_kind.get("geology", Vector3(6, 0, -52))
 	# Near the ice signal: a scarp with a pale exposed band (fictional placement).
 	var scarp := BoxMesh.new()
 	scarp.size = Vector3(26, 6, 3)
-	var wall := _mesh(self, scarp, Vector3(-52, terrain_height(-52, 33) + 1.5, 33), _material(Color("7b4a33")))
+	var scarp_at := ice + Vector3(-9, 0, 9)
+	var wall := _mesh(self, scarp, Vector3(scarp_at.x, terrain_height(scarp_at.x, scarp_at.z) + 1.5, scarp_at.z), _material(Color("7b4a33")))
 	wall.rotation.y = 0.5
 	var ice_band := BoxMesh.new()
 	ice_band.size = Vector3(22, 1.2, 0.3)
@@ -166,12 +189,14 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 		terrace.bottom_radius = 9.6 - step * 1.8
 		terrace.height = 0.7
 		terrace.radial_segments = 9
-		_mesh(self, terrace, Vector3(50, terrain_height(50, 26) - 0.3 + step * 0.7, 26), _material(Color(0.78, 0.66, 0.52).lerp(Color(0.66, 0.5, 0.38), step * 0.25)))
+		var terrace_at := clay + Vector3(10, 0, 6)
+		_mesh(self, terrace, Vector3(terrace_at.x, terrain_height(terrace_at.x, terrace_at.z) - 0.3 + step * 0.7, terrace_at.z), _material(Color(0.78, 0.66, 0.52).lerp(Color(0.66, 0.5, 0.38), step * 0.25)))
 	# Near the delta signal: thin stacked sediment layers.
 	for layer in range(7):
 		var sheet := BoxMesh.new()
 		sheet.size = Vector3(18 - layer * 1.6, 0.55, 8 - layer * 0.5)
-		_mesh(self, sheet, Vector3(10, terrain_height(10, -62) + 0.3 + layer * 0.55, -62), _material(layers[layer % layers.size()]))
+		var sheet_at := delta + Vector3(4, 0, -10)
+		_mesh(self, sheet, Vector3(sheet_at.x, terrain_height(sheet_at.x, sheet_at.z) + 0.3 + layer * 0.55, sheet_at.z), _material(layers[layer % layers.size()]))
 	# Phobos and Deimos, Mars's two small moons, high in the sky (positions illustrative).
 	var moon_material := _material(Color("8d8379"))
 	for spec in [[Vector3(-120, 140, -260), 6.0], [Vector3(200, 180, -150), 2.5]]:
@@ -182,9 +207,122 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 		shape.rings = 5
 		_mesh(self, shape, spec[0], moon_material)
 
+## Rock-free corridors along the main routes, so every site and the shelter stay reachable by driving.
+func _routes() -> void:
+	var rules: Dictionary = Destinations.surface_rules("mars")
+	var pad: Vector3 = Destinations.get_def("mars").pad
+	_route_points = [Vector3.ZERO, pad]
+	for template in rules.sites: _route_points.append(template.position)
+	if rules.has("shelter"): _route_points.append(rules.shelter.position)
+
+func _near_route(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	for i in range(_route_points.size()):
+		for j in range(i + 1, _route_points.size()):
+			var a := Vector2(_route_points[i].x, _route_points[i].z)
+			var b := Vector2(_route_points[j].x, _route_points[j].z)
+			var t: float = clampf((p - a).dot(b - a) / maxf((b - a).length_squared(), 0.001), 0.0, 1.0)
+			if p.distance_to(a + (b - a) * t) < 9.0: return true
+	return false
+
+func _shelter_and_pad() -> void:
+	var rules: Dictionary = Destinations.surface_rules("mars")
+	if rules.has("shelter"):
+		var at: Vector3 = rules.shelter.position
+		var shelter := Node3D.new()
+		shelter.position = Vector3(at.x, terrain_height(at.x, at.z), at.z)
+		add_child(shelter)
+		var dome := SphereMesh.new()
+		dome.radius = 5.5
+		dome.height = 6.0
+		dome.is_hemisphere = true
+		_mesh(shelter, dome, Vector3.ZERO, _material(Color("e9e2d4"), 0.6))
+		var door := BoxMesh.new()
+		door.size = Vector3(2.4, 2.6, 1.0)
+		_mesh(shelter, door, Vector3(0, 1.3, 5.2), _material(Color("2a3240")))
+		var lamp := OmniLight3D.new()
+		lamp.position = Vector3(0, 4.5, 6.5)
+		lamp.light_color = Color("ffd9a0")
+		lamp.light_energy = 1.6
+		lamp.omni_range = 18.0
+		shelter.add_child(lamp)
+		var sign_label := Label3D.new()
+		sign_label.text = "DUST SHELTER\nrecharge · repair"
+		sign_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		sign_label.position.y = 7.5
+		sign_label.font_size = 34
+		sign_label.outline_size = 8
+		shelter.add_child(sign_label)
+	var pad: Vector3 = Destinations.get_def("mars").pad
+	var ring := TorusMesh.new()
+	ring.inner_radius = 6.0
+	ring.outer_radius = 6.5
+	ring.rings = 48
+	_mesh(self, ring, Vector3(pad.x, terrain_height(pad.x, pad.z) + 0.1, pad.z), _material(Color("f3c582"), 0.8, 0.5))
+
+func _dust() -> void:
+	dust = CPUParticles3D.new()
+	dust.amount = 900
+	dust.lifetime = 4.0
+	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	dust.emission_box_extents = Vector3(40, 10, 40)
+	dust.direction = Vector3(1, 0.05, 0.3)
+	dust.spread = 25.0
+	dust.initial_velocity_min = 6.0
+	dust.initial_velocity_max = 12.0
+	dust.gravity = Vector3.ZERO
+	dust.scale_amount_min = 0.05
+	dust.scale_amount_max = 0.14
+	var mote := SphereMesh.new()
+	mote.radius = 0.5
+	mote.height = 1.0
+	mote.radial_segments = 6
+	mote.rings = 3
+	var mote_material := StandardMaterial3D.new()
+	mote_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mote_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mote_material.albedo_color = Color(0.78, 0.55, 0.38, 0.35)
+	mote.material = mote_material
+	dust.mesh = mote
+	dust.emitting = false
+	add_child(dust)
+
+## Presentation of the simulation's weather: haze, dimmer sun and blowing dust. No physics effect.
+func set_weather(weather: Dictionary) -> void:
+	weather_phase = str(weather.get("phase", "clear"))
+	if environment == null: return
+	match weather_phase:
+		"storm":
+			environment.fog_density = 0.028
+			environment.fog_light_color = Color(0.62, 0.42, 0.3)
+			sun.light_energy = 0.35
+			environment.ambient_light_energy = 0.26
+		"warning":
+			environment.fog_density = 0.009
+			environment.fog_light_color = Color(0.68, 0.5, 0.38)
+			sun.light_energy = 0.65
+			environment.ambient_light_energy = 0.3
+		_:
+			environment.fog_density = 0.0045
+			environment.fog_light_color = Color(0.7, 0.55, 0.45)
+			sun.light_energy = 0.82
+			environment.ambient_light_energy = 0.32
+	if dust:
+		dust.emitting = weather_phase != "clear"
+		(dust.mesh.material as StandardMaterial3D).albedo_color.a = 0.38 if weather_phase == "storm" else 0.12
+
+func update_checkpoints(checkpoints: Array) -> void:
+	if beacons: beacons.update_checkpoints(checkpoints)
+
 func build(sites: Array) -> void:
+	_routes()
 	_environment()
 	_terrain()
+	_shelter_and_pad()
+	_dust()
+	beacons = Beacons.new()
+	beacons.height_at = terrain_height
+	add_child(beacons)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1977
 	_rocks(rng)
@@ -249,6 +387,9 @@ func pulse(origin: Vector3) -> void:
 
 func _process(delta: float) -> void:
 	scan_age += delta
+	if dust and dust.emitting:
+		var camera: Camera3D = get_viewport().get_camera_3d()
+		if camera: dust.global_position = camera.global_position + Vector3(-12, -2, 0)
 	if scanner_ring == null: return
 	scanner_ring.visible = scan_age < 1.6
 	if scanner_ring.visible:

@@ -87,11 +87,12 @@ func hide_screen() -> void:
 	overlay.visible = false
 	active = ""
 
-func show_planning() -> void:
+func show_planning(campaign: bool = false) -> void:
 	_clear("planning")
-	_label("BLUE HORIZON", 50, TEXT, false)
-	_label("MOON  →  MARS  →  HOME", 15, Color("a8d8c6"), false)
-	_label("Explore the Moon, board your ship, fly to Mars, land and investigate, then bring the evidence home. Everything you carry has mass, and mass costs fuel.", 17, SOFT)
+	_label("BLUE HORIZON" if not campaign else "BLUE HORIZON: FIRST LIGHT", 50 if not campaign else 42, TEXT, false)
+	_label("MOON  →  MARS  →  HOME" if not campaign else "A NASA-INSPIRED STORY CAMPAIGN  ·  MOON  →  MARS  →  HOME", 15, Color("a8d8c6"), false)
+	_label("Explore the Moon, board your ship, fly to Mars, land and investigate, then bring the evidence home. Everything you carry has mass, and mass costs fuel." if not campaign else
+		"Mission Control needs routes and resource data for a future lunar research outpost, then evidence from an ancient-delta-inspired region on Mars. You fly every landing yourself; the assist and checkpoints keep it forgiving. Fictional expedition informed by NASA science.", 17, SOFT)
 	options.clear()
 	_option("battery", "BATTERY", [["compact", "Compact battery · 100 energy · 12 kg"], ["extended", "Extended battery · 160 energy · 28 kg"]], 0)
 	_option("power", "POWER", [["solar", "Solar array · weaker on Mars (43%)"], ["fuel-cell", "Fuel cells · 3 refills shared by both worlds"]], 0)
@@ -99,7 +100,7 @@ func show_planning() -> void:
 	_option("fuel", "SHIP FUEL", [["light", "Light · 450 kg"], ["standard", "Standard · 650 kg"], ["full", "Full · 850 kg"]], 1)
 	review_label = _label("", 15, Color("b9d7c6"))
 	advice_label = _label("", 14, AMBER)
-	start_button = _button("BEGIN EXPEDITION ON THE MOON", "start")
+	start_button = _button("BEGIN EXPEDITION ON THE MOON" if not campaign else "BEGIN FIRST LIGHT IN LUNAR ORBIT", "start")
 	_label("Fictional ship and equipment values · real figures are labelled (NASA) · distances compressed", 11, DIM)
 	_emit_config()
 
@@ -148,20 +149,25 @@ func show_aboard(place: String, lines: Array, destinations: Array, warning: Stri
 	_button("DEPLOY THE ROVER AGAIN", "disembark")
 	_button("END THE EXPEDITION HERE", "finish")
 
-func show_pause() -> void:
+func show_pause(campaign: bool = false) -> void:
 	_clear("pause")
 	_label("EXPEDITION PAUSED", 38, TEXT, false)
 	_button("RESUME", "resume")
+	if campaign: _button("RECOVER TO LAST CHECKPOINT (keeps all progress and evidence)", "recover")
 	_button("END THE EXPEDITION AND VIEW THE DEBRIEF", "finish")
 	_button("NEW EXPEDITION", "restart")
 	_button("QUIT", "quit")
 
-func show_report(report: Dictionary) -> void:
+func show_report(report: Dictionary, campaign: Dictionary = {}) -> void:
 	_clear("report")
-	_label("EXPEDITION DEBRIEF", 16, Color("a9d4bd"), false)
+	_label("EXPEDITION DEBRIEF" if campaign.is_empty() else "FIRST LIGHT DEBRIEF  ·  %d/%d OBJECTIVES%s" % [campaign.completed, campaign.total,
+		"  ·  CAMPAIGN COMPLETE" if campaign.complete else ""], 16, Color("a9d4bd"), false)
 	_label("%d / 100" % report.score, 60, TEXT, false)
 	_label("%d of %d possible science returned  ·  %d stations  ·  %s" % [report.science_returned, report.science_possible,
 		report.stations, "home at the Moon base" if report.home else "ended away from home"], 18, SOFT)
+	if not campaign.is_empty():
+		_label("   ".join(PackedStringArray(campaign.objectives)), 13, Color("b9d7c6"))
+		if int(campaign.recoveries) > 0: _label("Checkpoint recoveries used: %d (no penalty)." % campaign.recoveries, 13, DIM)
 	for line in report.feedback: _label("• " + str(line), 14, SOFT)
 	_button("PLAN ANOTHER EXPEDITION", "restart")
 	_button("QUIT", "quit")

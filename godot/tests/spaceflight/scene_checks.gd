@@ -38,7 +38,8 @@ func frames(count: int) -> void:
 func _run() -> void:
 	await stage_1_ship()
 	for extra in ["stage_2_space_travel", "marker_on_camera_plane", "stage_3_mars_surface",
-			"stage_4_expedition_loop", "finish_during_takeoff", "pause_during_takeoff"]:
+			"stage_4_expedition_loop", "finish_during_takeoff", "pause_during_takeoff", "finish_during_descent",
+			"landing_scene_controls", "surface_hazards_and_storm_visuals", "campaign_recovery_from_menu"]:
 		if has_method(extra): await call(extra)
 	OS.remove_logger(catcher)
 	for error in catcher.errors: failures.append("Runtime error: " + error)
@@ -240,6 +241,33 @@ func stage_3_mars_surface() -> void:
 	demo.queue_free()
 	await frames(2)
 
+## Player-equivalent descent inputs: on/off thrust and tapped side thrusters (no assist), as in test_landing.
+static func human_pilot(l: Dictionary) -> Dictionary:
+	var Landing = load("res://simulation/landing.gd")
+	var id: String = str(l.destination)
+	var margin: float = 4.0 if float(l.altitude) > 30.0 else 1.6
+	var stop_distance: float = pow(float(l.vertical_speed), 2) / (2.0 * (Landing.max_accel(id) - Landing.gravity(id)))
+	var thrust: float = 1.0 if (stop_distance + margin >= float(l.altitude) or float(l.vertical_speed) < -6.0) else 0.0
+	if float(l.vertical_speed) > -0.6: thrust = 0.0
+	var offset: Vector2 = l.offset
+	var velocity: Vector2 = l.lateral_velocity
+	var tap := func(v: float) -> float: return 0.0 if absf(v) < 0.4 else signf(v)
+	return {"throttle": thrust, "x": tap.call(-offset.x * 0.3 - velocity.x), "z": tap.call(-offset.y * 0.3 - velocity.y)}
+
+## Fly the final descent in the landing scene, manually or with the assist. Returns true on touchdown.
+func descend(game: Node, manual: bool) -> bool:
+	for i in range(120):
+		if game.current != null and game.current.has_method("read_input"): break
+		await physics_frame
+	if game.current == null or not game.current.has_method("read_input"): return false
+	if not manual: game.set_landing_assist(true)
+	for i in range(4000):
+		if game.expedition.phase != "landing": break
+		game.current.input_override = {} if not manual else human_pilot(game.expedition.landing)
+		await physics_frame
+	await frames(150)
+	return game.expedition.phase == "surface"
+
 ## Put the rover somewhere on the current surface and tell the surface scene (as driving would).
 func place_rover(game: Node, position: Vector3) -> void:
 	var surface: Node3D = game.current
@@ -281,7 +309,9 @@ func stage_4_expedition_loop() -> void:
 	var used: int = await fly_to(game.current, "mars")
 	check(used > 0, "Stage 4: flew to Mars")
 	check(game.current.try_land(), "Stage 4: landing accepted")
-	await frames(60)
+	await frames(2)
+	check(game.expedition.phase == "landing", "Stage 4: L starts the player-controlled final descent")
+	check(await descend(game, true), "Stage 4: manual descent (on/off thrust, tapped side thrusters) lands on Mars")
 	check(game.expedition.location == "mars" and game.expedition.phase == "surface", "Stage 4: landed and rover deployed on Mars")
 	check(game.current.world.get_script() == load("res://spaceflight/mars_world.gd"), "Stage 4: Martian surface scene")
 	for i in range(3): investigate(game, i)
@@ -297,13 +327,158 @@ func stage_4_expedition_loop() -> void:
 	used = await fly_to(game.current, "moon")
 	check(used > 0, "Stage 4: flew home")
 	check(game.current.try_land(), "Stage 4: landing at the Moon base")
+	check(game.expedition.delivered_science == 0, "Stage 4: nothing delivered before touchdown")
+	check(await descend(game, false), "Stage 4: assisted descent lands at the Moon base")
 	check(game.expedition.delivered_science == 105, "Stage 4: cores delivered on touchdown")
-	# Regression (INTEGRATION_REVIEW #1, landing): ending during the landing fade cancels the continuation.
 	game.finish()
-	await frames(150)
+	await frames(10)
 	check(game.ui.active == "report" and game.expedition.phase == "complete", "Stage 4: debrief shown and kept")
-	check(not game.current.has_method("try_board"), "Stage 4: no surface scene installed after ending during landing")
 	var report: Dictionary = load("res://simulation/expedition.gd").report(game.expedition)
 	check(report.home and report.science_returned == 40 + 60 + 105, "Stage 4: debrief counts every returned unit (%d)" % report.science_returned)
+	game.queue_free()
+	await frames(2)
+
+## Regression (INTEGRATION_REVIEW #1 applied to the new descent): ending during the descent transition or
+## the final descent itself installs no further scene and changes nothing afterwards.
+func finish_during_descent() -> void:
+	var Travel = load("res://simulation/travel.gd")
+	var Destinations = load("res://simulation/destinations.gd")
+	for when in ["transition", "descent"]:
+		var game: Node = load("res://scenes/spaceflight/expedition_demo.tscn").instantiate()
+		root.add_child(game)
+		await frames(5)
+		game.start({"battery": "compact", "power": "solar", "instrument": "drill"}, "standard")
+		await frames(20)
+		place_rover(game, Destinations.get_def("moon").pad + Vector3(0, 0, 5))
+		game.current.try_board()
+		game.takeoff("moon")
+		await frames(60)
+		check(Travel.guidance(game.current.ship, "moon").can_land, "Finish during descent (%s): starts inside the approach zone" % when)
+		game.current.try_land()
+		if when == "descent":
+			await frames(80)
+			check(game.current.has_method("read_input") and game.expedition.phase == "landing", "Finish during descent: descent under way")
+		else:
+			await frames(5)
+		game.finish()
+		await frames(150)
+		check(game.expedition.phase == "complete" and game.ui.active == "report", "Finish during descent (%s): debrief kept" % when)
+		check(not game.current.has_method("try_board"), "Finish during descent (%s): no surface scene installed" % when)
+		check(not game.expedition.has("landing"), "Finish during descent (%s): descent discarded" % when)
+		game.queue_free()
+		await frames(2)
+
+## The landing scene: keyboard lever and thrusters, assist toggle, failure and free retry.
+func landing_scene_controls() -> void:
+	var Landing = load("res://simulation/landing.gd")
+	var scene: Node3D = load("res://spaceflight/landing_scene.gd").new()
+	scene.setup("moon", Landing.create("moon", 42))
+	root.add_child(scene)
+	await frames(3)
+	var toggles: Array = []
+	var retries: Array = []
+	scene.assist_toggled.connect(func(on: bool) -> void: toggles.append(on))
+	scene.retry_requested.connect(func() -> void: retries.append(true))
+	key_event(KEY_W, true)
+	await frames(30)
+	key_event(KEY_W, false)
+	var input: Dictionary = scene.read_input()
+	check(input.has("throttle") and float(input.throttle) > 0.4, "Landing scene: W raises the throttle lever (%s)" % input)
+	key_event(KEY_RIGHT, true)
+	await frames(2)
+	check(scene.read_input().x == 1.0, "Landing scene: → fires the east thruster")
+	key_event(KEY_RIGHT, false)
+	key_event(KEY_T, true)
+	key_event(KEY_T, false)
+	await frames(2)
+	check(toggles == [true], "Landing scene: T toggles the assist")
+	var failed: Dictionary = Landing.create("moon", 42)
+	failed.status = "failed"
+	failed.reason = "Unsafe touchdown: test."
+	scene.show_landing(failed)
+	key_event(KEY_R, true)
+	key_event(KEY_R, false)
+	await frames(2)
+	check(retries.size() == 1, "Landing scene: R requests a retry after a failure")
+	check("Retry" in scene.labels.status.text, "Landing scene: failure explains the free retry")
+	scene.queue_free()
+	await frames(2)
+
+func key_event(code: Key, down: bool) -> void:
+	var event := InputEventKey.new()
+	event.keycode = code
+	event.physical_keycode = code
+	event.pressed = down
+	Input.parse_input_event(event)
+
+## Impacts, repairs and storm presentation in the real surface scene (Mars demo scene).
+func surface_hazards_and_storm_visuals() -> void:
+	var demo: Node = load("res://scenes/spaceflight/mars_surface.tscn").instantiate()
+	root.add_child(demo)
+	await frames(60)
+	var surface: Node3D = demo.surface
+	var integrity_before: float = surface.state.integrity
+	surface.report_impact(3.0)
+	check(surface.state.integrity == integrity_before, "Hazards: soft bumps do no damage")
+	surface.report_impact(9.0)
+	check(surface.state.integrity < integrity_before, "Hazards: a hard impact reduces integrity")
+	var worn: float = surface.state.integrity
+	surface.report_impact(9.0)
+	check(surface.state.integrity == worn, "Hazards: no second hit inside the cooldown")
+	check("CONDITION  %d%%" % roundi(worn) in surface.hud.telemetry.text, "Hazards: HUD shows integrity")
+	var field: Dictionary = surface.state.duplicate(true)
+	field.position = Vector3(90, 0, 90)
+	surface.apply_state(field)
+	key_event(KEY_H, true)
+	key_event(KEY_H, false)
+	await frames(2)
+	check(surface.state.integrity == worn, "Hazards: no field repairs")
+	var at_pad: Dictionary = surface.state.duplicate(true)
+	at_pad.position = Vector3(0, 0, -7)
+	surface.apply_state(at_pad)
+	key_event(KEY_H, true)
+	key_event(KEY_H, false)
+	await frames(2)
+	check(surface.state.integrity == 100.0, "Hazards: H repairs for free at the ship")
+	var clear_fog: float = surface.world.environment.fog_density
+	surface.apply_state(surface.engine.forecast_storm(surface.state, 0.5))
+	var parked: Vector3 = surface.state.position
+	var energy: float = surface.state.energy
+	await frames(60 * 12)
+	check(surface.state.weather.phase == "storm" and surface.world.weather_phase == "storm", "Storm: the world shows the simulated storm")
+	check(surface.world.environment.fog_density > clear_fog * 3.0, "Storm: visibility drops (fog %.4f)" % surface.world.environment.fog_density)
+	check(surface.world.dust.emitting, "Storm: blowing dust visible")
+	check(Vector2(surface.state.position.x - parked.x, surface.state.position.z - parked.z).length() < 0.01, "Storm: no wind push on the rover")
+	check(surface.state.integrity == 100.0 and surface.state.energy == energy, "Storm: no damage or drain for being outdoors")
+	demo.queue_free()
+	await frames(2)
+
+## Campaign pause-menu recovery returns the rover to the checkpoint and keeps progress and evidence.
+func campaign_recovery_from_menu() -> void:
+	var game: Node = load("res://scenes/spaceflight/campaign.tscn").instantiate()
+	root.add_child(game)
+	await frames(5)
+	check(game.start({"battery": "compact", "power": "solar", "instrument": "drill"}, "standard"), "Recovery: campaign begins")
+	check(game.current.paused, "Recovery: flight waits while the briefing is open")
+	game.mission_control.close_briefing()
+	await frames(2)
+	check(not game.current.paused, "Recovery: closing the briefing hands over control")
+	game.current.try_land()
+	check(await descend(game, false), "Recovery: assisted first landing")
+	var surface: Node3D = game.current
+	check(surface.beacons != null or surface.world.has_method("update_checkpoints"), "Recovery: checkpoint beacons drawn")
+	var completed: Array = game.expedition.campaign.completed.duplicate()
+	var sites: Array = surface.state.sites.duplicate(true)
+	place_rover(game, Vector3(-60, 0, 70))
+	surface.state.energy = 3.0
+	surface.mission_changed.emit(surface.state)
+	surface.menu_requested.emit()
+	check(game.ui.active == "pause", "Recovery: pause menu")
+	game.ui.choice.emit("recover", "")
+	await frames(5)
+	check(Vector2(surface.state.position.x, surface.state.position.z).length() < 0.5, "Recovery: rover back at the landing checkpoint (%s)" % surface.state.position)
+	check(surface.state.energy >= surface.state.max_energy * 0.6 - 0.001, "Recovery: battery topped up")
+	check(surface.state.sites == sites and game.expedition.campaign.completed == completed, "Recovery: sites and progress unchanged")
+	check(not surface.paused and game.ui.active == "", "Recovery: play resumes")
 	game.queue_free()
 	await frames(2)

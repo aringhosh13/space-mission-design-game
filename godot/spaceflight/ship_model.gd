@@ -9,6 +9,8 @@ var retro_flares: Array[MeshInstance3D] = []
 var engine_light: OmniLight3D
 var exhaust: CPUParticles3D
 var legs: Node3D
+var descent_flames: Array[MeshInstance3D] = []
+var _descent: float = 0.0
 var _flicker: float = 0.0
 var _throttle: float = 0.0
 var _braking: float = 0.0
@@ -126,6 +128,19 @@ func _ready() -> void:
 	exhaust.emitting = false
 	add_child(exhaust)
 
+	# Downward descent thrusters (final descent), under the pods and the nose.
+	for at in [Vector3(-1.55, -1.0, 2.0), Vector3(1.55, -1.0, 2.0), Vector3(0, -1.0, -2.4)]:
+		var plume := CylinderMesh.new()
+		plume.top_radius = 0.45
+		plume.bottom_radius = 0.0
+		plume.height = 1.0
+		var down_flame := MeshInstance3D.new()
+		down_flame.mesh = plume
+		down_flame.material_override = flame_material
+		down_flame.position = at
+		down_flame.visible = false
+		add_child(down_flame)
+		descent_flames.append(down_flame)
 	# Landing legs, shown on the pad.
 	legs = Node3D.new()
 	add_child(legs)
@@ -177,6 +192,16 @@ func set_engine(throttle: float, braking: float) -> void:
 	exhaust.emitting = _throttle > 0.05
 	for flare in retro_flares: flare.visible = _braking > 0.01
 	_apply_flicker()
+
+## Final-descent thrust 0..1: downward plumes and engine light.
+func set_descent(throttle: float) -> void:
+	_descent = clampf(throttle, 0.0, 1.0)
+	for plume in descent_flames:
+		plume.visible = _descent > 0.02
+		var length: float = 0.6 + 3.2 * _descent
+		plume.scale = Vector3(0.8 + 0.5 * _descent, length, 0.8 + 0.5 * _descent)
+		plume.position.y = -1.0 - length * 0.5
+	if engine_light: engine_light.light_energy = maxf(engine_light.light_energy, 3.0 * _descent)
 
 func landing_gear(deployed: bool) -> void:
 	if legs: legs.visible = deployed

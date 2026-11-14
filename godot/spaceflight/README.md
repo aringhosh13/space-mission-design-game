@@ -12,6 +12,7 @@ The project's main scene (F5) is still Codex's lunar game.
 
 | Scene | What it shows |
 | --- | --- |
+| `scenes/spaceflight/campaign.tscn` | **First Light story campaign** (see [CAMPAIGN.md](CAMPAIGN.md)): guided Moon → Mars → home with manual landings, checkpoints, dust storms and gentle rover damage |
 | `scenes/spaceflight/expedition_demo.tscn` | **The full playable loop:** plan → Moon → board → take off → fly → land on Mars → investigate → fly home → debrief |
 | `scenes/spaceflight/ship_sandbox.tscn` | Stage 1: fly the ship through buoys |
 | `scenes/spaceflight/space_travel.tscn` | Stage 2: Moon ⇄ Mars flights with landing and takeoff transitions |
@@ -27,6 +28,9 @@ T transmit · B deploy station · **G board the ship** (within 9 m of it) · Esc
 **Flight:** W thrust · S brake (retro thrust against your velocity) · A/D steer · R/F pitch ·
 **hold C to align with the target** · Tab change destination · **L land** (inside the approach zone,
 below 6 u/s) · Esc menu.
+
+**Final descent** (after L): W/S throttle lever · X cut · arrow keys or I/J/K/L side thrusters · T landing assist ·
+R retry after an unsafe touchdown (no extra fuel).
 
 **Aboard:** take off for another world, deploy the rover again, or end the expedition.
 
