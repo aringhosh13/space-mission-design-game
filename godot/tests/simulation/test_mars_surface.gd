@@ -7,11 +7,15 @@ func mars(config: Dictionary = DRILL, mission_seed: int = 42) -> Dictionary:
 
 func test_lunar_contract_is_unchanged() -> void:
 	var v1: Dictionary = engine.create_mission(DRILL, 42)
-	check(not v1.has("destination"), "create_mission keeps the v1 schema")
-	var moon: Dictionary = engine.create_surface_mission(DRILL, 42, "moon")
-	eq(moon.destination, "moon", "destination recorded")
-	moon.erase("destination")
-	eq(moon, v1, "the Moon via create_surface_mission is identical to create_mission")
+	for key in ["destination", "integrity", "impact_cooldown", "elapsed_seconds", "weather"]:
+		check(not v1.has(key), "create_mission keeps the v1 schema (no %s)" % key)
+	eq(v1.sites[0].position.x < -30.0 and v1.sites[0].position.x > -40.0, true, "v1 sites keep the ±78 m layout")
+	eq(engine.surface_rules(v1), Rules.MOON, "v1 states use the original lunar rules")
+	near(engine.move_rover(engine.act(v1, "launch"), Vector3(200, 0, 0)).position.x, 78.0, "v1 missions stay clamped to ±78 m")
+	var region: Dictionary = engine.create_surface_mission(DRILL, 42, "moon")
+	eq(region.destination, "moon", "destination recorded")
+	check(float(engine.surface_rules(region).map_limit) > 78.0, "expanded lunar survey region for spaceflight")
+	eq(region.integrity, 100.0, "campaign fields present on destination missions")
 
 func test_landmarks_and_unknown_destinations_have_no_surface_mission() -> void:
 	eq(engine.create_surface_mission(DRILL, 1, "earth"), {}, "Earth is a landmark")
@@ -74,7 +78,7 @@ func test_mars_layouts_are_playable() -> void:
 	for mission_seed in range(500):
 		var sites: Array = engine.create_surface_mission(DRILL, mission_seed, "mars").sites
 		for entry in sites:
-			check(absf(entry.position.x) <= 78.0 and absf(entry.position.z) <= 78.0, "inside map")
+			check(absf(entry.position.x) <= float(rules.map_limit) and absf(entry.position.z) <= float(rules.map_limit), "inside the Mars region")
 			check(Engine_.flat_distance(entry.position, Vector3.ZERO) > 6.0 and Engine_.flat_distance(entry.position, pad) > 6.0, "clear of landing point and pad")
 		for i in range(3):
 			for j in range(i + 1, 3):

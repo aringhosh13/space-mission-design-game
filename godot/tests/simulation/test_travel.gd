@@ -28,7 +28,9 @@ func test_destination_definitions_are_complete_and_sourced() -> void:
 				check(Engine_.flat_distance(template.position, Vector3.ZERO) - float(rules.site_jitter) > float(rules.interaction_range), "%s site not at the landing point" % id)
 				check(Engine_.flat_distance(template.position, def.pad) - float(rules.site_jitter) > float(rules.interaction_range), "%s site clear of the ship pad" % id)
 	check(not Destinations.is_explorable("earth"), "Earth is a landmark")
-	eq(Destinations.surface_rules("moon"), Rules.MOON, "Moon keeps the contract v1 rules")
+	eq(Destinations.surface_rules(""), Rules.MOON, "missions without a destination keep the contract v1 rules")
+	check(float(Destinations.surface_rules("moon").map_limit) > float(Rules.MOON.map_limit), "lunar survey region is larger than the v1 map")
+	check(float(Destinations.surface_rules("mars").map_limit) > float(Rules.MOON.map_limit), "Mars region is larger than the v1 map")
 
 func test_bodies_do_not_overlap_including_approach_zones() -> void:
 	var ids: Array = Destinations.ids()

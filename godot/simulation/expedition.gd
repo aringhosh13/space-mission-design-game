@@ -10,7 +10,10 @@ extends RefCounted
 ##   disembark        aboard → surface at the same destination
 ##   takeoff          aboard → flight: pays ascent fuel at the current mass (stranded if short)
 ##   fly              flight: ship physics with the proximity guard
-##   land             flight → aboard: pays descent fuel; landing at home delivers carried cores
+##   land             flight → aboard: pays descent fuel; landing at home delivers carried cores (legacy, instant)
+##   begin_landing    flight → landing: pays descent fuel ONCE, then the player flies the final descent
+##   landing_step     landing → aboard on a safe touchdown (same delivery as land); unsafe → status failed
+##   retry_landing    restart the final descent from the approach point; never charges fuel again
 ##   finish           any → complete
 ##
 ## Consequences: fuel load and rover payload set ship mass and delta-v (rocket equation); every sample core
@@ -22,6 +25,7 @@ const Design = preload("res://simulation/design.gd")
 const Ship = preload("res://simulation/ship_flight.gd")
 const Travel = preload("res://simulation/travel.gd")
 const Destinations = preload("res://simulation/destinations.gd")
+const Landing = preload("res://simulation/landing.gd")
 
 const MAX_LOG_LINES: int = 10
 const SCORE_SCIENCE_WEIGHT: float = 70.0
@@ -122,8 +126,12 @@ static func board(original: Dictionary) -> Dictionary:
 					"finding": site.finding, "science": int(rules.sample_science), "mass": float(rules.core_mass)})
 				stowed += 1
 	s.rover_fuel_cells = int(m.fuel_cells)
-	# The ship recharges the stowed rover's battery (fictional convenience).
+	# The ship recharges the stowed rover's battery, repairs it and relays any untransmitted data
+	# (fictional conveniences that keep the campaign forgiving). Sample cores still travel physically.
 	m.energy = float(m.max_energy)
+	if m.has("integrity"): m.integrity = 100.0
+	var sendable: int = _transmittable(m, rules)
+	if sendable > int(m.science_returned): m.science_returned = sendable
 	s.phase = "aboard"
 	_update_cargo(s)
 	return _note(s, "Rover stowed%s. Ship mass %d kg." % [
@@ -153,6 +161,9 @@ static func takeoff(original: Dictionary, toward_id: String) -> Dictionary:
 	s.ship = result.ship
 	s.stranded = false
 	var origin: String = s.location
+	if s.has("campaign"):
+		# Campaign checkpoint for this flight leg: recovery restarts the leg from just after the ascent.
+		s.campaign.flight_checkpoint = {"ship": s.ship.duplicate(true), "origin": Destinations.get_def(origin).name}
 	s.location = ""
 	s.phase = "flight"
 	return _note(s, "Lifted off from %s: ascent burned %d kg." % [Destinations.get_def(origin).name, roundi(result.fuel_burned)])
@@ -169,10 +180,51 @@ static func land(original: Dictionary, id: String) -> Dictionary:
 	var result: Dictionary = Travel.land(s.ship, id)
 	if not result.ok: return _note(s, "Landing refused. " + result.reason)
 	s.ship = result.ship
+	return _touch_down(s, id, "Landed on %s: descent burned %d kg." % [Destinations.get_def(id).name, roundi(result.fuel_burned)])
+
+## Start the player-controlled final descent. The whole descent burn is charged here, once.
+static func begin_landing(original: Dictionary, id: String, assist: bool = false) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if s.phase != "flight": return _note(s, "Not in flight.")
+	var result: Dictionary = Travel.land(s.ship, id)
+	if not result.ok: return _note(s, "Landing refused. " + result.reason)
+	s.ship = result.ship
+	s.phase = "landing"
+	s.landing = Landing.create(id, int(s.seed), assist)
+	s.landing.fuel_charged = true
+	return _note(s, "Descent burn: %d kg. Final descent to the %s pad." % [roundi(result.fuel_burned), Destinations.get_def(id).name])
+
+static func landing_step(original: Dictionary, input: Dictionary, dt: float) -> Dictionary:
+	if original.phase != "landing": return original.duplicate(true)
+	var s: Dictionary = original.duplicate(true)
+	var before: String = str(s.landing.status)
+	s.landing = Landing.step(s.landing, input, dt)
+	if s.landing.status == "landed":
+		var id: String = str(s.landing.destination)
+		var attempts: int = int(s.landing.attempts)
+		s.erase("landing")
+		return _touch_down(s, id, "Touchdown on %s%s." % [Destinations.get_def(id).name, "" if attempts <= 1 else " (attempt %d)" % attempts])
+	if s.landing.status == "failed" and before != "failed": _note(s, str(s.landing.reason))
+	return s
+
+static func retry_landing(original: Dictionary) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if s.phase != "landing": return s
+	var l: Dictionary = s.landing
+	s.landing = Landing.create(str(l.destination), int(s.seed), bool(l.assist), int(l.attempts) + 1)
+	s.landing.fuel_charged = true
+	return _note(s, "Back at the approach point. Try the descent again.")
+
+static func set_landing_assist(original: Dictionary, on: bool) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if s.phase == "landing": s.landing.assist = on
+	return s
+
+static func _touch_down(s: Dictionary, id: String, message: String) -> Dictionary:
+	s.ship.velocity = Vector3.ZERO
 	s.location = id
 	s.phase = "aboard"
 	if not id in s.visited: s.visited.append(id)
-	var message: String = "Landed on %s: descent burned %d kg." % [Destinations.get_def(id).name, roundi(result.fuel_burned)]
 	if bool(Destinations.get_def(id).get("home", false)) and not s.cores.is_empty():
 		var science: int = 0
 		for core in s.cores: science += int(core.science)
@@ -187,6 +239,7 @@ static func finish(original: Dictionary) -> Dictionary:
 	var s: Dictionary = original.duplicate(true)
 	if s.phase == "complete": return s
 	if s.phase == "planning": return _note(s, "The expedition has not begun.")
+	s.erase("landing")
 	s.phase = "complete"
 	return _note(s, "Expedition closed. Preparing the debrief.")
 

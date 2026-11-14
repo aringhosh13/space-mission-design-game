@@ -54,5 +54,9 @@ const MAX_LOG_LINES: int = 8
 ## Score: returned science is worth up to 70 points, an operational station 30 (unchanged principle).
 const SCORE_SCIENCE_WEIGHT: float = 70.0
 const SCORE_STATION_POINTS: float = 30.0
+## Gentle rover damage (fictional tuning from the campaign handoff). Integrity never drops below the floor;
+## damage only from hard impacts at or above the threshold, at most once per cooldown.
+const IMPACT: Dictionary = {"threshold": 5.0, "cooldown": 3.0, "min_damage": 5.0, "max_damage": 15.0,
+	"damage_per_mps": 2.0, "floor": 35.0, "max_energy_penalty": 0.4}
 ## Tolerance for floating-point energy comparisons.
 const EPSILON: float = 0.000001

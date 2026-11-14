@@ -37,6 +37,11 @@ func create_surface_mission(config: Dictionary, mission_seed: int, destination_i
 	var rules: Dictionary = Destinations.surface_rules(destination_id)
 	var state: Dictionary = _new_mission(config, mission_seed, rules, "layout" if destination_id == "moon" else "layout-" + destination_id)
 	state["destination"] = destination_id
+	# Optional campaign fields (shared/CAMPAIGN_CONTRACT.md). v1 missions never carry them.
+	state["integrity"] = 100.0
+	state["impact_cooldown"] = 0.0
+	state["elapsed_seconds"] = 0.0
+	state["weather"] = _weather_at(rules, 0.0, float(rules.get("storms", {}).get("first_clear", INF)))
 	return state
 
 func _new_mission(config: Dictionary, mission_seed: int, rules: Dictionary, layout_stream: String) -> Dictionary:
@@ -72,7 +77,7 @@ func move_rover(original: Dictionary, proposed: Vector3) -> Dictionary:
 	if distance <= 0.0:
 		s.position = target  # vertical settling only: free
 		return s
-	var cost: float = distance * float(rules.move_energy_per_m)
+	var cost: float = distance * float(rules.move_energy_per_m) * movement_multiplier(s)
 	var energy: float = float(s.energy)
 	if cost <= energy + Rules.EPSILON:
 		s.position = target
@@ -138,11 +143,105 @@ func get_report(state: Dictionary) -> Dictionary:
 		"outpost_operational": state.outpost_deployed,
 	}
 
+# ------------------------------------------------------------------- campaign additions (additive)
+
+## Advance simulation time on the surface (seconds come from the scene's physics delta, never the
+## wall clock). Decays the impact cooldown and updates weather deterministically.
+func advance_time(original: Dictionary, seconds: float) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if s.phase != "surface" or not s.has("elapsed_seconds") or not is_finite(seconds) or seconds <= 0.0: return s
+	var rules: Dictionary = surface_rules(s)
+	var previous: String = str(s.weather.phase)
+	s.elapsed_seconds = float(s.elapsed_seconds) + seconds
+	s.impact_cooldown = maxf(0.0, float(s.impact_cooldown) - seconds)
+	s.weather = _weather_at(rules, float(s.elapsed_seconds), float(s.weather.next_storm_at))
+	var now: String = str(s.weather.phase)
+	if now != previous:
+		match now:
+			"warning": _record(s, "Dust storm warning: about %d s. Shelter, fuel cells or a full battery will see you through." % ceili(s.weather.remaining_seconds))
+			"storm": _record(s, "Dust storm: visibility down, solar charging at %d%%." % roundi(s.weather.solar_multiplier * float(rules.solar_efficiency) * 100.0))
+			"clear": _record(s, "The dust storm has passed. Solar charging restored.")
+	return s
+
+## Hard impacts (reported once per event by the rover scene) gently reduce integrity. Never below the floor.
+func report_impact(original: Dictionary, impact_speed: float) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if s.phase != "surface" or not s.has("integrity") or not is_finite(impact_speed): return s
+	var tuning: Dictionary = Rules.IMPACT
+	if impact_speed < float(tuning.threshold) or float(s.impact_cooldown) > 0.0: return s
+	var damage: float = clampf(float(tuning.min_damage) + (impact_speed - float(tuning.threshold)) * float(tuning.damage_per_mps),
+		float(tuning.min_damage), float(tuning.max_damage))
+	s.integrity = maxf(float(tuning.floor), float(s.integrity) - damage)
+	s.impact_cooldown = float(tuning.cooldown)
+	_record(s, "Hard impact at %.1f m/s: integrity %d%%. Free repairs at the ship%s." % [impact_speed, roundi(s.integrity),
+		" or shelter" if surface_rules(s).has("shelter") else ""])
+	return s
+
+## Free full repair at the ship pad or the shelter. Elsewhere only a hint is logged.
+func repair(original: Dictionary) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if s.phase != "surface" or not s.has("integrity"): return s
+	if not (at_pad(s) or in_shelter(s)):
+		_record(s, "Repairs are free at the ship%s." % (" or the dust shelter" if surface_rules(s).has("shelter") else ""))
+		return s
+	if float(s.integrity) >= 100.0:
+		_record(s, "Rover already in full condition.")
+		return s
+	s.integrity = 100.0
+	_record(s, "Rover repaired: integrity 100%.")
+	return s
+
+## Bring the next storm warning forward (campaign pacing). No effect without storms or during a storm.
+func forecast_storm(original: Dictionary, within_seconds: float) -> Dictionary:
+	var s: Dictionary = original.duplicate(true)
+	if not s.has("weather"): return s
+	var rules: Dictionary = surface_rules(s)
+	if not rules.has("storms") or s.weather.phase != "clear": return s
+	var at: float = float(s.elapsed_seconds) + maxf(0.0, within_seconds)
+	if at < float(s.weather.next_storm_at):
+		s.weather = _weather_at(rules, float(s.elapsed_seconds), at)
+	return s
+
+## Movement energy multiplier from rover condition: +0 % at 100 integrity up to +40 % at the floor.
+static func movement_multiplier(state: Dictionary) -> float:
+	if not state.has("integrity"): return 1.0
+	var tuning: Dictionary = Rules.IMPACT
+	var wear: float = clampf((100.0 - float(state.integrity)) / (100.0 - float(tuning.floor)), 0.0, 1.0)
+	return 1.0 + wear * float(tuning.max_energy_penalty)
+
+func at_pad(state: Dictionary) -> bool:
+	if not state.has("destination"): return false
+	var def: Dictionary = Destinations.get_def(str(state.destination))
+	return flat_distance(state.position, def.pad) <= float(def.get("boarding_range", 0.0))
+
+func in_shelter(state: Dictionary) -> bool:
+	var shelter: Dictionary = surface_rules(state).get("shelter", {})
+	return not shelter.is_empty() and flat_distance(state.position, shelter.position) <= float(shelter.radius)
+
+## Deterministic storm cycle: clear until next_storm_at, warning, storm, then clear again.
+static func _weather_at(rules: Dictionary, elapsed: float, next_storm_at: float) -> Dictionary:
+	var storms: Dictionary = rules.get("storms", {})
+	if storms.is_empty():
+		return {"phase": "clear", "remaining_seconds": 0.0, "solar_multiplier": 1.0, "next_storm_at": INF}
+	var start: float = next_storm_at
+	var warning: float = float(storms.warning)
+	var active: float = float(storms.active)
+	while elapsed >= start + warning + active:
+		start += warning + active + float(storms.clear)
+	if elapsed < start:
+		return {"phase": "clear", "remaining_seconds": start - elapsed, "solar_multiplier": 1.0, "next_storm_at": start}
+	if elapsed < start + warning:
+		return {"phase": "warning", "remaining_seconds": start + warning - elapsed, "solar_multiplier": 1.0, "next_storm_at": start}
+	return {"phase": "storm", "remaining_seconds": start + warning + active - elapsed,
+		"solar_multiplier": float(storms.storm_solar), "next_storm_at": start}
+
 # ----------------------------------------------------------------------------------------- helpers
 
-## Rules for the surface this mission is on. Missions without a "destination" key are lunar (contract v1).
+## Rules for the surface this mission is on. Missions without a "destination" key are lunar contract v1
+## missions and keep the original ±78 m rule set.
 func surface_rules(state: Dictionary) -> Dictionary:
-	return Destinations.surface_rules(str(state.get("destination", "moon")))
+	if not state.has("destination"): return Rules.MOON
+	return Destinations.surface_rules(str(state.destination))
 
 static func flat_distance(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
@@ -217,8 +316,13 @@ func _recharge(s: Dictionary, rules: Dictionary) -> void:
 	elif solar and not is_lit(s.position, rules):
 		_record(s, "Solar charging unavailable in the shadow. Drive east of x = %d." % int(rules.shade_boundary_x))
 	elif not solar and int(s.fuel_cells) <= 0: _record(s, "Fuel cell supplies exhausted.")
+	elif in_shelter(s):
+		var before_shelter: float = float(s.energy)
+		s.energy = minf(float(s.max_energy), before_shelter + float(rules.recharge_amount))
+		_record(s, "Shelter power bank: +%.1f energy." % (float(s.energy) - before_shelter))
 	else:
-		var amount: float = float(rules.recharge_amount) * (float(rules.solar_efficiency) if solar else 1.0)
+		var weather_factor: float = float(s.get("weather", {}).get("solar_multiplier", 1.0)) if solar else 1.0
+		var amount: float = float(rules.recharge_amount) * (float(rules.solar_efficiency) * weather_factor if solar else 1.0)
 		if not solar: s.fuel_cells = int(s.fuel_cells) - 1
 		var before: float = float(s.energy)
 		s.energy = minf(float(s.max_energy), before + amount)
