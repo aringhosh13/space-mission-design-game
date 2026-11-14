@@ -31,6 +31,19 @@ flight specifications or a validated engineering model; the files say so beside 
 No NASA datasets are used by the engine yet. The human team must review this code and disclose
 it accurately in the final submission.
 
+## Claude engine contributions (milestone 2, branch `claude/engine-m2`)
+
+Claude (Claude Opus 5.5, via Claude Code) implemented the contract v2 changes the team agreed:
+
+- `src/shared/types.ts`: `outpostPosition`, `Site.confidence`, `Site.finding` and `MissionReport.confirmedSites`.
+- `src/engine/evidence.ts`, plus updates to `mission.ts`, `step.ts`, `report.ts`, `index.ts` and a new `src/engine/README.md`:
+  findings, confidence transitions, seeded false positives and station position.
+- `src/preview/engine.ts`: only initialises the new fields so the project compiles; no preview rules changed.
+- Vitest tests in `src/engine/tests/milestone2.test.ts`.
+
+The false-positive chances and confidence ranges in `src/engine/evidence.ts` are fictional balancing
+values, not NASA observations or a validated detection model.
+
 ## Before submission
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
