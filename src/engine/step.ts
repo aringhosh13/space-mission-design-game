@@ -5,8 +5,29 @@ import { RULES } from './rules';
 const ACTION_TYPES = new Set(['launch', 'move', 'scan', 'sample', 'recharge', 'transmit', 'deploy', 'finish']);
 
 const distance = (a: Position, b: Position) => Math.hypot(a.x - b.x, a.z - b.z);
-const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+/** Positions are stored on a 0.001-unit grid. */
+const GRID_UNITS = 1000;
+
+/**
+ * Quantise a displacement component to the position grid by rounding TOWARD ZERO, so the stored
+ * move can never be longer than the commanded one. Values within floating-point noise of a grid
+ * step (e.g. 0.9999999999999998) snap to it, so ordinary unit moves stay exactly one unit.
+ */
+function towardZeroOnGrid(n: number): number {
+  const units = n * GRID_UNITS;
+  const nearest = Math.round(units);
+  const steps = Math.abs(units - nearest) < 1e-6 ? nearest : Math.trunc(units);
+  return steps / GRID_UNITS || 0;
+}
+
+/** Commanded displacement on one axis, capped at the map edge without subtracting rounded positions. */
+function axisDisplacement(from: number, delta: number, limit: number): number {
+  if (from + delta > limit) return limit - from;
+  if (from + delta < -limit) return -limit - from;
+  return delta;
+}
 
 /** Runtime guard: the UI is typed, but the engine must not trust malformed input. */
 function isAction(action: unknown): action is MissionAction {
@@ -30,9 +51,33 @@ export function siteInRange(position: Position, sites: Site[]): Site | undefined
   return best;
 }
 
-/** Energy for a move of the given length: whole units, at least 1 for any non-zero move. */
+/**
+ * Energy for a move of the given length: whole units, at least 1 for any non-zero move.
+ * The small tolerance absorbs floating-point noise (a 1-unit move costing 2.0000000001 is still 2).
+ */
 export function moveEnergy(travelled: number): number {
-  return Math.max(1, Math.ceil(travelled * RULES.moveEnergyPerUnit - 1e-9));
+  return Math.max(1, Math.ceil(travelled * RULES.moveEnergyPerUnit - 1e-6));
+}
+
+/**
+ * Resolve a commanded move into the new grid position and the distance actually travelled.
+ * Order: cap length at maxMoveDistance → cap at the map edge → quantise toward zero.
+ * Each step can only shorten the move, so distance and energy never exceed the commanded move.
+ */
+export function resolveMove(from: Position, dx: number, dz: number): { to: Position; travelled: number; blockedByEdge: boolean } {
+  const scale = Math.min(1, RULES.maxMoveDistance / Math.hypot(dx, dz));
+  const limit = RULES.mapLimit;
+  const ax = axisDisplacement(from.x, dx * scale, limit);
+  const az = axisDisplacement(from.z, dz * scale, limit);
+  const blockedByEdge = Math.hypot(ax, az) < 1e-9;
+  const qx = towardZeroOnGrid(ax);
+  const qz = towardZeroOnGrid(az);
+  const travelled = Math.hypot(qx, qz);
+  // On-grid starts (every state the engine produces) land exactly on the grid. For an off-grid
+  // start built outside the engine, keep the unrounded sum rather than let rounding lengthen the move.
+  const snapped = { x: round3(from.x + qx), z: round3(from.z + qz) };
+  const to = distance(from, snapped) <= travelled + 1e-9 ? snapped : { x: from.x + qx, z: from.z + qz };
+  return { to, travelled, blockedByEdge };
 }
 
 /**
@@ -77,17 +122,13 @@ export function step(state: MissionState, action: MissionAction): MissionState {
         log('Move rejected: direction must be finite numbers.');
         break;
       }
-      const length = Math.hypot(dx, dz);
-      if (length === 0) { log('Move rejected: no direction given.'); break; }
-      const scale = Math.min(1, RULES.maxMoveDistance / length);
-      const limit = RULES.mapLimit;
-      const next = {
-        x: round3(clamp(s.position.x + dx * scale, -limit, limit)),
-        z: round3(clamp(s.position.z + dz * scale, -limit, limit))
-      };
-      const travelled = distance(s.position, next);
-      if (travelled < 1e-6) { log('Survey boundary reached.'); break; }
-      if (consume(moveEnergy(travelled))) s.position = next;
+      if (Math.hypot(dx, dz) === 0) { log('Move rejected: no direction given.'); break; }
+      const { to, travelled, blockedByEdge } = resolveMove(s.position, dx, dz);
+      if (travelled === 0) {
+        log(blockedByEdge ? 'Survey boundary reached.' : 'Move rejected: smaller than the 0.001-unit position resolution.');
+        break;
+      }
+      if (consume(moveEnergy(travelled))) s.position = to;
       break;
     }
 

@@ -52,6 +52,66 @@ describe('movement', () => {
     expect(s.energy).toBe(69);
   });
 
+  describe('rounding regression (PR #1 review)', () => {
+    it('angled move { dx: 1, dz: 1.5 } stays within one unit and costs 2', () => {
+      const s = engine.step(launched(), { type: 'move', dx: 1, dz: 1.5 });
+      expect(s.position).toEqual({ x: 0.554, z: 0.832 });
+      expect(Math.hypot(s.position.x, s.position.z)).toBeLessThanOrEqual(1);
+      expect(s.energy).toBe(70 - 2);
+    });
+
+    it('a rover with exactly 2 energy can make that angled move', () => {
+      const s = engine.step(withEnergy(launched(), 2), { type: 'move', dx: 1, dz: 1.5 });
+      expect(s.position).toEqual({ x: 0.554, z: 0.832 });
+      expect(s.energy).toBe(0);
+      expect(s.turns).toBe(1);
+    });
+
+    it('never exceeds one unit or 2 energy for a full move in any direction, from grid and off-integer starts', () => {
+      const starts = [{ x: 0, z: 0 }, { x: 2.3, z: -4.7 }, { x: -6.123, z: 3.457 }, { x: 0.555, z: 0.832 }];
+      for (const start of starts) {
+        for (let deg = 0; deg < 360; deg += 0.5) {
+          const rad = (deg * Math.PI) / 180;
+          for (const magnitude of [1, 1.8, 25]) {
+            const before = withEnergy(at(launched(), start), 2);
+            const after = engine.step(before, { type: 'move', dx: Math.cos(rad) * magnitude, dz: Math.sin(rad) * magnitude });
+            const moved = Math.hypot(after.position.x - start.x, after.position.z - start.z);
+            expect(moved).toBeLessThanOrEqual(1 + 1e-9);
+            expect(moved).toBeGreaterThan(0.998);
+            expect(after.energy).toBe(0);
+          }
+        }
+      }
+    });
+
+    it('keeps axis-aligned unit moves exact from non-integer positions (no 0.999 drift)', () => {
+      let s = at(launched(), { x: 2.3, z: -4.7 });
+      for (let i = 0; i < 5; i++) s = engine.step(s, { type: 'move', dx: 1, dz: 0 });
+      s = engine.step(s, { type: 'move', dx: 0, dz: 1 });
+      expect(s.position).toEqual({ x: 7.3, z: -3.7 });
+      expect(s.energy).toBe(70 - 12);
+    });
+
+    it('charges an angled move clipped by the map edge only for the distance travelled', () => {
+      const near = at(launched(), { x: 9.8, z: 0 });
+      const s = engine.step(near, { type: 'move', dx: 1, dz: 1 });
+      expect(s.position).toEqual({ x: 10, z: 0.707 });
+      expect(s.energy).toBe(70 - 2); // travelled ≈ 0.735 → ceil(1.47) = 2
+
+      const corner = at(launched(), { x: 9.7, z: 9.9 });
+      const c = engine.step(corner, { type: 'move', dx: 1, dz: 1 });
+      expect(c.position).toEqual({ x: 10, z: 10 });
+      expect(c.energy).toBe(70 - 1); // travelled ≈ 0.316 → 1
+    });
+
+    it('rejects a move smaller than the position resolution without spending energy', () => {
+      const before = launched();
+      const after = engine.step(before, { type: 'move', dx: 0.0004, dz: 0 });
+      expect(withoutLog(after)).toEqual(withoutLog(before));
+      expect(after.log[0]).toMatch(/resolution/);
+    });
+  });
+
   it('refuses to move without enough power', () => {
     const low = withEnergy(launched(), 1);
     const s = engine.step(low, { type: 'move', dx: 1, dz: 0 });
