@@ -1,6 +1,6 @@
 extends Node3D
 ## Player-controlled final descent onto a destination's landing pad (presentation + input only).
-## The authoritative descent lives in simulation/landing.gd via expedition.landing_step(); the owner feeds
+## The authoritative descent lives in simulation/landing.gd via expedition.step_landing(); the owner feeds
 ## the result back with show_landing() every physics frame.
 ##
 ## Integration API:
@@ -133,7 +133,7 @@ func _process(delta: float) -> void:
 		lever_touched = true
 		lever = clampf(lever + (LEVER_RATE if up else -LEVER_RATE) * delta, 0.0, 1.0)
 
-## Keyboard (or override) input for expedition.landing_step(). With the assist on, the throttle is only
+## Keyboard (or override) input for expedition.step_landing(). With the assist on, the throttle is only
 ## sent while the player holds W/S, so the assist flies whatever the player leaves alone.
 func read_input() -> Dictionary:
 	if input_override is Dictionary: return (input_override as Dictionary).duplicate()

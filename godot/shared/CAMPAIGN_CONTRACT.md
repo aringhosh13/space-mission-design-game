@@ -12,7 +12,7 @@ All tuning values are fictional balancing values unless a NASA source is named.
 | `destination` | String | `"moon"` or `"mars"` (already in PR #4) |
 | `integrity` | float 35–100 | Rover condition. Starts at 100 and never drops below 35. Above 35 the rover is never immobilised. |
 | `impact_cooldown` | float, seconds | Time before another hard impact can cause damage |
-| `elapsed_seconds` | float | Simulation time on this surface. It advances only through `advance_time`, never from the wall clock. |
+| `elapsed_seconds` | float | Simulation time on this surface. It advances only through `advance_surface`, never from the wall clock. |
 | `weather` | Dictionary | `{phase: "clear"/"warning"/"storm", remaining_seconds: float, solar_multiplier: float, next_storm_at: float}` |
 
 Missions created by `create_mission` (v1) have none of these keys, and every method treats them as absent:
@@ -22,9 +22,9 @@ clear weather, integrity 100, no cooldown.
 
 | Method | Effect |
 | --- | --- |
-| `advance_time(state, seconds) -> Dictionary` | Advances `elapsed_seconds`, decays `impact_cooldown` and updates `weather` deterministically. Surface phase only. |
-| `report_impact(state, impact_speed) -> Dictionary` | Damages only at speeds of 5 m/s or more and when the cooldown is 0: 5–15 points, floor 35, then a 3 s cooldown |
-| `repair(state) -> Dictionary` | Free full repair at the ship pad or the Mars shelter; otherwise only a log hint |
+| `advance_surface(state, seconds) -> Dictionary` | Advances `elapsed_seconds`, decays `impact_cooldown` and updates `weather` deterministically. Surface phase only. |
+| `apply_impact(state, impact_speed) -> Dictionary` | Damages only at speeds of 5 m/s or more and when the cooldown is 0: 5–15 points, floor 35, then a 3 s cooldown |
+| `repair_rover(state) -> Dictionary` | Free full repair at the ship pad or the Mars shelter; otherwise only a log hint |
 | `forecast_storm(state, within_seconds) -> Dictionary` | Brings the next storm warning forward (used by the campaign so nobody waits long) |
 
 Rule effects: movement energy rises gently as integrity falls (up to +40% at 35, fictional). Solar recharge is
@@ -39,12 +39,23 @@ from destination rules (`simulation/destinations.gd`), not from the global lunar
   `{destination, altitude, vertical_speed, offset: Vector2 (x, z from the pad), lateral_velocity: Vector2,
   throttle, allowance (seconds of full thrust), assist: bool, status: "descending"/"landed"/"failed",
   reason, attempts, fuel_charged: bool}`
-- Methods: `begin_landing(state, id)`, `landing_step(state, input, dt)`, `retry_landing(state)`,
-  `set_landing_assist(state, on)`. Descent fuel is charged once, in `begin_landing`, and retries never
+- Methods (agreed names): `begin_landing(state, destination_id, assist = false)`,
+  `step_landing(state, controls, dt)`, `retry_landing(state)`, `set_landing_assist(state, on)`,
+  `recover_checkpoint(state)` (campaign recovery; unchanged state without a campaign) and
+  `checkpoint_list(state) -> Array` (public beacons for the current location). Descent fuel is charged once, in `begin_landing`, and retries never
   charge it again. The legacy `land()` remains.
 - `campaign: Dictionary` (present only in campaign mode):
   `{id, chapter, objective, completed: Array[String], reached: Array[String], checkpoint: Dictionary,
   flight_checkpoint: Dictionary, storm_seen: bool, recoveries: int, message: String}`
+
+## Landing controls and telemetry
+
+`step_landing` controls: `{throttle: float 0..1 (optional; omitted = assist decides when assist is on, else 0),
+x: float -1..1 (east +), z: float -1..1 (south +)}`. Telemetry is the `landing` dictionary above: altitude (m above
+the pad), vertical_speed (m/s, up +), offset (m from the pad centre), lateral_velocity (m/s), throttle actually
+used, allowance (seconds of full thrust left), status and reason. Safe envelope (fictional, generous): ≤ 3 m/s
+down, ≤ 2 m/s drift, within 15 m of the pad centre. Gravity is the destination's real surface gravity (NASA).
+Scene keys: W/S throttle lever, X cut, arrows or I/J/K/L side thrusters, T assist, R retry, Esc menu.
 
 ## Presentation checkpoints
 

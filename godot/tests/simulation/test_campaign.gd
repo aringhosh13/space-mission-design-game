@@ -13,7 +13,7 @@ func land_with_assist(state: Dictionary, id: String) -> Dictionary:
 	var s: Dictionary = Expedition.begin_landing(state, id, true)
 	for i in range(8000):
 		if s.phase != "landing": break
-		s = Expedition.landing_step(s, {}, DT)
+		s = Expedition.step_landing(s, {}, DT)
 	return Campaign.evaluate(s)
 
 ## Pure-state helpers (the driven scene route tests the same journey without any of these).
@@ -59,7 +59,7 @@ func mars_chapter(state: Dictionary) -> Dictionary:
 func ride_out_storm(state: Dictionary) -> Dictionary:
 	var s: Dictionary = state
 	for i in range(int(60.0 / 0.5)):
-		s.missions.mars = engine.advance_time(s.missions.mars, 0.5)
+		s.missions.mars = engine.advance_surface(s.missions.mars, 0.5)
 		s = Campaign.evaluate(s)
 		if "mars-storm" in completed(s): break
 	return s
@@ -152,7 +152,7 @@ func test_flight_and_landing_recovery() -> void:
 	var crashed: Dictionary = descending
 	for i in range(4000):
 		if crashed.landing.status != "descending": break
-		crashed = Expedition.landing_step(crashed, {"throttle": 0.0}, DT)
+		crashed = Expedition.step_landing(crashed, {"throttle": 0.0}, DT)
 	var retried: Dictionary = Campaign.recover(crashed)
 	eq(retried.landing.status, "descending", "descent restarts from the approach")
 	eq(retried.ship.fuel, fuel_after_burn, "no extra fuel charged")
@@ -190,3 +190,13 @@ func test_campaign_functions_are_pure_and_reproducible() -> void:
 	Campaign.checkpoints_for(s, "mars")
 	eq(s, snapshot, "inputs unchanged")
 	eq(mars_chapter(moon_chapter(9)), mars_chapter(moon_chapter(9)), "same seed and actions, same campaign")
+
+func test_agreed_expedition_entry_points() -> void:
+	var s: Dictionary = Campaign.evaluate(Expedition.disembark(land_with_assist(begun(), "moon")))
+	eq(Expedition.checkpoint_list(s), Campaign.checkpoints_for(s, "moon"), "checkpoint_list = current location's beacons")
+	var lost: Dictionary = s.duplicate(true)
+	lost.missions.moon.position = Vector3(100, 0, 100)
+	eq(Expedition.recover_checkpoint(lost), Campaign.recover(lost), "recover_checkpoint = campaign recovery")
+	var plain: Dictionary = Expedition.begin(Expedition.create(DRILL, "standard", 1))
+	eq(Expedition.recover_checkpoint(plain), plain, "no campaign: nothing changes")
+	eq(Expedition.checkpoint_list(plain), [], "no campaign: no beacons")

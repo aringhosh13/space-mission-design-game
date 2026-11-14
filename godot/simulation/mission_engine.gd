@@ -147,7 +147,7 @@ func get_report(state: Dictionary) -> Dictionary:
 
 ## Advance simulation time on the surface (seconds come from the scene's physics delta, never the
 ## wall clock). Decays the impact cooldown and updates weather deterministically.
-func advance_time(original: Dictionary, seconds: float) -> Dictionary:
+func advance_surface(original: Dictionary, seconds: float) -> Dictionary:
 	var s: Dictionary = original.duplicate(true)
 	if s.phase != "surface" or not s.has("elapsed_seconds") or not is_finite(seconds) or seconds <= 0.0: return s
 	var rules: Dictionary = surface_rules(s)
@@ -164,7 +164,7 @@ func advance_time(original: Dictionary, seconds: float) -> Dictionary:
 	return s
 
 ## Hard impacts (reported once per event by the rover scene) gently reduce integrity. Never below the floor.
-func report_impact(original: Dictionary, impact_speed: float) -> Dictionary:
+func apply_impact(original: Dictionary, impact_speed: float) -> Dictionary:
 	var s: Dictionary = original.duplicate(true)
 	if s.phase != "surface" or not s.has("integrity") or not is_finite(impact_speed): return s
 	var tuning: Dictionary = Rules.IMPACT
@@ -178,7 +178,7 @@ func report_impact(original: Dictionary, impact_speed: float) -> Dictionary:
 	return s
 
 ## Free full repair at the ship pad or the shelter. Elsewhere only a hint is logged.
-func repair(original: Dictionary) -> Dictionary:
+func repair_rover(original: Dictionary) -> Dictionary:
 	var s: Dictionary = original.duplicate(true)
 	if s.phase != "surface" or not s.has("integrity"): return s
 	if not (at_pad(s) or in_shelter(s)):

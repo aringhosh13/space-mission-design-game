@@ -13,9 +13,9 @@ extends Node3D
 ##   func act(action: String), try_board() -> bool, board_distance() -> float
 ##   func report_impact(speed), repair(), set_checkpoints(list), apply_state(state)   (campaign additions)
 ##
-## Campaign additions: simulation time advances every physics frame (engine.advance_time, never the wall
+## Campaign additions: simulation time advances every physics frame (engine.advance_surface, never the wall
 ## clock); Mars weather drives world.set_weather(); hard impacts from Codex's rover.impact_reported (when
-## present) go to engine.report_impact; H repairs at the ship or shelter; integrity is shown in the HUD and
+## present) go to engine.apply_impact; H repairs at the ship or shelter; integrity is shown in the HUD and
 ## passed to rover.set_condition() when present. Larger regions use world.configure_extent() when present;
 ## otherwise the lunar scene keeps the rover on the rendered terrain with invisible collision walls.
 const MissionEngine = preload("res://simulation/mission_engine.gd")
@@ -26,6 +26,7 @@ const Rover = preload("res://scripts/rover.gd")
 const ShipModel = preload("res://spaceflight/ship_model.gd")
 const SurfaceHUD = preload("res://spaceflight/surface_hud.gd")
 const Beacons = preload("res://spaceflight/checkpoint_beacons.gd")
+const MoonAtlas = preload("res://scripts/moon_atlas.gd")
 ## Legacy lunar terrain half-size (Codex's lunar_world.gd before configure_extent exists).
 const LEGACY_LUNAR_EXTENT: float = 107.0
 
@@ -49,6 +50,8 @@ var beacons: Node3D
 var physical_limit: float = INF
 var _weather_phase: String = ""
 var _last_integrity: float = -1.0
+var atlas: CanvasLayer
+var _atlas_previous_pause: bool = false
 
 func setup(id: String, mission_state: Dictionary, extra: Dictionary = {}) -> void:
 	destination_id = id
@@ -122,15 +125,43 @@ func _boundary_walls(half: float) -> void:
 		body.add_child(collision)
 	add_child(body)
 
+## Codex's global lunar atlas (M on Moon surfaces). Planning only: a survey pick never moves the rover,
+## changes the mission or completes an objective. The surface pause state is saved and restored.
+func toggle_atlas() -> void:
+	if def.world != "lunar":
+		hud.flash("The global atlas covers the Moon (NASA LRO/LOLA elevation).")
+		return
+	if atlas == null:
+		atlas = MoonAtlas.new()
+		atlas.close_requested.connect(_close_atlas)
+		atlas.survey_selected.connect(_on_survey_selected)
+		add_child(atlas)
+	if atlas.is_open():
+		_close_atlas()
+		return
+	_atlas_previous_pause = paused
+	paused = true
+	_sync()
+	atlas.show_map()
+
+func _close_atlas() -> void:
+	if atlas == null or not atlas.is_open(): return
+	atlas.hide_map()
+	paused = _atlas_previous_pause
+	_sync()
+
+func _on_survey_selected(latitude: float, longitude: float) -> void:
+	hud.flash("Survey marker %.2f°, %.2f° E noted for planning. It does not move the rover." % [latitude, longitude])
+
 func report_impact(impact_speed: float) -> void:
 	if paused: return
-	state = engine.report_impact(state, impact_speed)
+	state = engine.apply_impact(state, impact_speed)
 	mission_changed.emit(state)
 	_sync()
 
 func repair() -> void:
 	if paused: return
-	state = engine.repair(state)
+	state = engine.repair_rover(state)
 	mission_changed.emit(state)
 	_sync()
 
@@ -148,7 +179,7 @@ func apply_state(next: Dictionary) -> void:
 
 func _physics_process(delta: float) -> void:
 	if paused or state.phase != "surface": return
-	state = engine.advance_time(state, delta)
+	state = engine.advance_surface(state, delta)
 	var phase: String = str(state.get("weather", {}).get("phase", "clear"))
 	if phase != _weather_phase:
 		_weather_phase = phase
@@ -188,3 +219,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	if actions.has(event.physical_keycode): act(actions[event.physical_keycode])
 	elif event.physical_keycode == KEY_G: try_board()
 	elif event.physical_keycode == KEY_H: repair()
+	elif event.physical_keycode == KEY_M:
+		get_viewport().set_input_as_handled()
+		toggle_atlas()

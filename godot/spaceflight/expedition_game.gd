@@ -6,7 +6,7 @@ extends Node
 ##     a guided story with Mission Control objectives, checkpoints and recovery (simulation/campaign.gd).
 ## The expedition state (simulation/expedition.gd) is authoritative. Scenes report changes back: the surface
 ## scene's mission state, the space scene's ship state; the landing scene only supplies input and the game
-## steps the descent through Expedition.landing_step().
+## steps the descent through Expedition.step_landing().
 ##
 ## Methods used by tests and integrators: start(config, fuel_load), board(), takeoff(target), land(id),
 ## retry_landing(), set_landing_assist(on), disembark(), recover(), finish(), and the `expedition`,
@@ -342,7 +342,7 @@ func _physics_process(delta: float) -> void:
 	if expedition.get("phase", "") != "landing" or current == null or not current.has_method("read_input") or current.paused: return
 	var before: String = str(expedition.landing.status)
 	var id: String = str(expedition.landing.destination)
-	expedition = Expedition.landing_step(expedition, current.read_input(), delta)
+	expedition = Expedition.step_landing(expedition, current.read_input(), delta)
 	if expedition.phase == "aboard":
 		_touchdown(id)
 		return

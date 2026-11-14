@@ -12,15 +12,15 @@ func advance(state: Dictionary, seconds: float, step: float = 0.5) -> Dictionary
 	var t: float = 0.0
 	while t < seconds - 0.000001:
 		var dt: float = minf(step, seconds - t)
-		s = engine.advance_time(s, dt)
+		s = engine.advance_surface(s, dt)
 		t += dt
 	return s
 
 func test_v1_missions_are_untouched_by_hazard_methods() -> void:
 	var v1: Dictionary = launched()
-	eq(engine.advance_time(v1, 100.0), v1, "no time fields on v1 states")
-	eq(engine.report_impact(v1, 50.0), v1, "no damage on v1 states")
-	eq(engine.repair(v1), v1, "no repair on v1 states")
+	eq(engine.advance_surface(v1, 100.0), v1, "no time fields on v1 states")
+	eq(engine.apply_impact(v1, 50.0), v1, "no damage on v1 states")
+	eq(engine.repair_rover(v1), v1, "no repair on v1 states")
 	near(engine.move_rover(v1, Vector3(10, 0, 0)).energy, 100.0 - 1.6, "v1 movement cost unchanged")
 
 func test_the_moon_has_no_weather() -> void:
@@ -32,7 +32,7 @@ func test_mars_storm_cycle_is_deterministic_and_step_independent() -> void:
 	var expectations: Array = [[74.0, "clear"], [76.0, "warning"], [86.0, "storm"], [109.0, "storm"], [111.0, "clear"], [201.0, "warning"]]
 	for pair in expectations:
 		var fine: Dictionary = advance(mars(), pair[0], 1.0 / 60.0)
-		var coarse: Dictionary = engine.advance_time(mars(), pair[0])
+		var coarse: Dictionary = engine.advance_surface(mars(), pair[0])
 		eq(fine.weather.phase, pair[1], "phase at %d s" % pair[0])
 		for key in ["phase", "next_storm_at", "solar_multiplier"]:
 			eq(coarse.weather[key], fine.weather[key], "same %s however time is stepped (%d s)" % [key, pair[0]])
@@ -71,36 +71,36 @@ func test_weather_changes_are_logged() -> void:
 
 func test_impacts_damage_gently_with_threshold_cooldown_and_floor() -> void:
 	var s: Dictionary = mars()
-	eq(engine.report_impact(s, 4.9), s, "below 5 m/s: no damage")
-	var hit: Dictionary = engine.report_impact(s, 5.0)
+	eq(engine.apply_impact(s, 4.9), s, "below 5 m/s: no damage")
+	var hit: Dictionary = engine.apply_impact(s, 5.0)
 	near(hit.integrity, 95.0, "5 damage at the threshold")
 	near(hit.impact_cooldown, 3.0, "cooldown starts")
-	eq(engine.report_impact(hit, 20.0).integrity, hit.integrity, "no second hit during the cooldown")
-	var later: Dictionary = engine.report_impact(advance(hit, 3.0), 30.0)
+	eq(engine.apply_impact(hit, 20.0).integrity, hit.integrity, "no second hit during the cooldown")
+	var later: Dictionary = engine.apply_impact(advance(hit, 3.0), 30.0)
 	near(later.integrity, 80.0, "capped at 15 damage per hit")
 	var battered: Dictionary = s
-	for i in range(50): battered = engine.report_impact(advance(battered, 3.0), 40.0)
+	for i in range(50): battered = engine.apply_impact(advance(battered, 3.0), 40.0)
 	eq(battered.integrity, 35.0, "never below the floor")
 	var moved: Dictionary = engine.move_rover(battered, battered.position + Vector3(10, 0, 0))
 	check(moved.position.x > battered.position.x, "never immobilised")
 	near(battered.energy - moved.energy, 10.0 * 0.2 * 1.4, "worn rover uses up to 40% more energy")
-	for bad in [NAN, INF, -5.0]: eq(engine.report_impact(s, bad), s, "ignores bad speed %s" % bad)
+	for bad in [NAN, INF, -5.0]: eq(engine.apply_impact(s, bad), s, "ignores bad speed %s" % bad)
 
 func test_repairs_are_free_at_the_ship_or_shelter_only() -> void:
-	var worn: Dictionary = engine.report_impact(mars(), 15.0)
-	var field: Dictionary = engine.repair(at(worn, Vector3(80, 0, 80)))
+	var worn: Dictionary = engine.apply_impact(mars(), 15.0)
+	var field: Dictionary = engine.repair_rover(at(worn, Vector3(80, 0, 80)))
 	eq(field.integrity, worn.integrity, "no field repairs")
 	check("free" in last_log(field), "says where repairs are")
-	eq(engine.repair(at(worn, Vector3(0, 0, -8))).integrity, 100.0, "at the ship pad")
-	eq(engine.repair(at(worn, engine.surface_rules(worn).shelter.position)).integrity, 100.0, "at the shelter")
-	var moon_worn: Dictionary = engine.report_impact(moon(), 15.0)
-	eq(engine.repair(at(moon_worn, Vector3(0, 0, -11))).integrity, 100.0, "Moon pad repairs too")
+	eq(engine.repair_rover(at(worn, Vector3(0, 0, -8))).integrity, 100.0, "at the ship pad")
+	eq(engine.repair_rover(at(worn, engine.surface_rules(worn).shelter.position)).integrity, 100.0, "at the shelter")
+	var moon_worn: Dictionary = engine.apply_impact(moon(), 15.0)
+	eq(engine.repair_rover(at(moon_worn, Vector3(0, 0, -11))).integrity, 100.0, "Moon pad repairs too")
 
 func test_hazard_methods_do_not_mutate_inputs() -> void:
 	var s: Dictionary = advance(mars(), 80.0)
 	var snapshot: Dictionary = s.duplicate(true)
-	engine.advance_time(s, 10.0)
-	engine.report_impact(s, 12.0)
-	engine.repair(s)
+	engine.advance_surface(s, 10.0)
+	engine.apply_impact(s, 12.0)
+	engine.repair_rover(s)
 	engine.forecast_storm(s, 1.0)
 	eq(s, snapshot, "unchanged")

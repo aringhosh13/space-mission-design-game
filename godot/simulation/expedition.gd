@@ -12,7 +12,7 @@ extends RefCounted
 ##   fly              flight: ship physics with the proximity guard
 ##   land             flight → aboard: pays descent fuel; landing at home delivers carried cores (legacy, instant)
 ##   begin_landing    flight → landing: pays descent fuel ONCE, then the player flies the final descent
-##   landing_step     landing → aboard on a safe touchdown (same delivery as land); unsafe → status failed
+##   step_landing     landing → aboard on a safe touchdown (same delivery as land); unsafe → status failed
 ##   retry_landing    restart the final descent from the approach point; never charges fuel again
 ##   finish           any → complete
 ##
@@ -194,7 +194,7 @@ static func begin_landing(original: Dictionary, id: String, assist: bool = false
 	s.landing.fuel_charged = true
 	return _note(s, "Descent burn: %d kg. Final descent to the %s pad." % [roundi(result.fuel_burned), Destinations.get_def(id).name])
 
-static func landing_step(original: Dictionary, input: Dictionary, dt: float) -> Dictionary:
+static func step_landing(original: Dictionary, input: Dictionary, dt: float) -> Dictionary:
 	if original.phase != "landing": return original.duplicate(true)
 	var s: Dictionary = original.duplicate(true)
 	var before: String = str(s.landing.status)
@@ -214,6 +214,15 @@ static func retry_landing(original: Dictionary) -> Dictionary:
 	s.landing = Landing.create(str(l.destination), int(s.seed), bool(l.assist), int(l.attempts) + 1)
 	s.landing.fuel_charged = true
 	return _note(s, "Back at the approach point. Try the descent again.")
+
+## Agreed campaign entry points (NASA_CAMPAIGN_HANDOFF.md). Without a campaign they change nothing / return [].
+static func recover_checkpoint(state: Dictionary) -> Dictionary:
+	return load("res://simulation/campaign.gd").recover(state)
+
+## Public presentation checkpoints for the current location: [{id, title, position, completed, active}].
+static func checkpoint_list(state: Dictionary) -> Array:
+	if str(state.get("location", "")) == "": return []
+	return load("res://simulation/campaign.gd").checkpoints_for(state, str(state.location))
 
 static func set_landing_assist(original: Dictionary, on: bool) -> Dictionary:
 	var s: Dictionary = original.duplicate(true)

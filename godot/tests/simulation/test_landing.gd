@@ -107,7 +107,7 @@ func test_expedition_charges_descent_fuel_exactly_once() -> void:
 	var crashed: Dictionary = landing
 	for i in range(3000):
 		if crashed.landing.status != "descending": break
-		crashed = Expedition.landing_step(crashed, {"throttle": 0.0}, DT)
+		crashed = Expedition.step_landing(crashed, {"throttle": 0.0}, DT)
 	eq(crashed.landing.status, "failed", "free fall fails")
 	var retry: Dictionary = Expedition.retry_landing(crashed)
 	eq(retry.ship.fuel, landing.ship.fuel, "retry costs no fuel")
@@ -115,7 +115,7 @@ func test_expedition_charges_descent_fuel_exactly_once() -> void:
 	var down: Dictionary = Expedition.set_landing_assist(retry, true)
 	for i in range(6000):
 		if down.phase != "landing": break
-		down = Expedition.landing_step(down, {}, DT)
+		down = Expedition.step_landing(down, {}, DT)
 	eq(down.phase, "aboard", "landed")
 	eq(down.location, "mars", "on Mars")
 	eq(down.ship.fuel, landing.ship.fuel, "touchdown charges nothing more")
@@ -139,6 +139,6 @@ func test_landing_home_delivers_cores_once_and_finish_mid_descent_closes_cleanly
 	eq(closed.delivered_science, 0, "no delivery without touchdown")
 	for i in range(6000):
 		if s.phase != "landing": break
-		s = Expedition.landing_step(s, {}, DT)
+		s = Expedition.step_landing(s, {}, DT)
 	eq(s.delivered_science, 35, "delivered on touchdown")
-	eq(Expedition.landing_step(s, {}, DT).delivered_science, 35, "no second delivery")
+	eq(Expedition.step_landing(s, {}, DT).delivered_science, 35, "no second delivery")

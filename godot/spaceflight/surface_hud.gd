@@ -90,7 +90,7 @@ func _ready() -> void:
 	flash_label.size = Vector2(480, 40)
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flash_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_label(root, "WASD DRIVE   RMB LOOK   E SCAN   Q SAMPLE   R POWER   T TRANSMIT   B STATION   G BOARD   H REPAIR   ESC MENU", 12, Color("c1d7d4"), Vector2(34, 674))
+	_label(root, "WASD DRIVE   RMB LOOK   E SCAN   Q SAMPLE   R POWER   T TRANSMIT   B STATION   G BOARD   H REPAIR   M MOON ATLAS   ESC MENU", 12, Color("c1d7d4"), Vector2(34, 674))
 	_label(root, "FICTIONAL GAME VALUES  ·  REAL FIGURES ARE LABELLED (NASA)", 10, Color("7f999f"), Vector2(34, 698))
 
 func _label(parent: Node, text: String, font_size: int, color: Color, at: Vector2) -> Label:

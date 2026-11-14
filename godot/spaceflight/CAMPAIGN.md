@@ -29,7 +29,7 @@ dismisses them). The top panel shows the current objective and its distance.
 
 | Where | Keys |
 | --- | --- |
-| Surface | WASD drive · right mouse look · E scan · Q sample · R recharge · T transmit · B station · G board · **H repair** (at the ship or shelter) · Esc menu |
+| Surface | WASD drive · right mouse look · E scan · Q sample · R recharge · T transmit · B station · G board · **H repair** (at the ship or shelter) · **M Moon atlas** (Moon only, planning only) · Esc menu |
 | Flight | W thrust · S brake · A/D steer · R/F pitch · hold C align · Tab destination · **L begin descent** · Esc menu |
 | **Final descent** | **W/S throttle lever** · X cut throttle · **arrow keys or I/J/K/L side thrusters** (camera faces north) · **T landing assist** · **R retry** after an unsafe touchdown · Esc menu |
 | Menus | Enter skips the briefing · pause menu: Resume, **Recover to last checkpoint**, End, New, Quit |
@@ -63,26 +63,31 @@ dismisses them). The top panel shows the current objective and its distance.
 | Perseverance studies delta and lake habitability and caches samples for possible return | Aurora Delta region, sample cores, science values, scores |
 | Interplanetary travel takes months | Compressed map distances and travel times |
 
-Terrain: the Mars region is **procedural and inspired by** delta landforms. No MOLA or HiRISE product is used, so
-it is not data-derived. Codex is importing NASA LOLA elevation for the Moon on `codex/nasa-moon`; this branch
-uses whatever lunar world is present.
+Terrain: the Moon uses Codex's NASA LRO/LOLA-derived relief (see `godot/data/terrain/README.md` for the product
+and distortions). The Mars region is **procedural and inspired by** delta landforms. No MOLA or HiRISE product is
+used, so it is not data-derived.
 
 Sources are in `spaceflight/FACTS.md`.
 
 ## Larger regions and levels of detail
 
-Space flight remains a compressed whole-system view. Each landing site is a separate, larger **local** surface
-region: the Moon survey region allows ±150 m and Mars ±220 m (the v1 lunar game keeps ±78 m). Neither is a whole
-planet, and rover-level detail exists only inside these regions. Until Codex's lunar renderer offers
-`configure_extent()`, the lunar surface scene keeps the rover on the rendered ±107 m terrain with invisible
-collision walls. All campaign sites are placed within that area.
+Space flight remains a compressed whole-system view, and Codex's lunar atlas (M on Moon surfaces) gives a
+planning-only global overview. Each landing site is a separate, larger **local** surface region: the Moon survey
+region allows ±150 m and Mars ±220 m (the v1 lunar game keeps ±78 m). Neither is a whole planet, and rover-level
+detail exists only inside these regions. The surface and landing scenes call `world.configure_extent()` with the
+destination's map limit; Codex's lunar renderer on this base supports it. For an older lunar world without it,
+the scene falls back to invisible collision walls at ±107 m, and every campaign site lies inside that area.
 
 ## Integration notes for Codex
 
-- **Hooks consumed only when present** (no edits to Codex files):
+- **Agreed method names:** mission `advance_surface`, `apply_impact` and `repair_rover`; expedition
+  `begin_landing`, `step_landing`, `recover_checkpoint` and `checkpoint_list`. Details are in `shared/CAMPAIGN_CONTRACT.md`.
+- **Codex's atlas** (`scripts/moon_atlas.gd`) is connected to Moon surfaces: M toggles it, the pause state is saved and
+  restored, and `survey_selected` only shows a planning note.
+- **Hooks used when present** (all exist on the current base; no Codex files edited):
   - `world.configure_extent(limit)` before `build()`
   - `world.update_checkpoints(list)`; until it exists the surface scene draws `spaceflight/checkpoint_beacons.gd`
-  - `rover.impact_reported(speed)` → `engine.report_impact`
+  - `rover.impact_reported(speed)` → `engine.apply_impact`
   - `rover.set_condition(integrity)` after each change
 - New keys and methods are documented in `shared/CAMPAIGN_CONTRACT.md`. `mission_contract.gd`, project settings
   and export presets are unchanged.
@@ -105,5 +110,6 @@ collision walls. All campaign sites are placed within that area.
   	check(game.expedition.phase == "surface", "Keyboard landing failed")
   ```
 
-  `tests/spaceflight/campaign_route.gd` is the adapted driven route for the campaign. It flies both descents
-  manually without the assist.
+  With only this change, the unmodified rest of `expedition_smoke.gd` passes on this branch (checked from a
+  scratch copy). `tests/spaceflight/campaign_route.gd` is the adapted driven route for the campaign. It flies
+  every descent manually without the assist.
