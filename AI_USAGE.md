@@ -16,6 +16,21 @@ Fonts, if reachable, are served by Google Fonts; system fallbacks work without t
 No AI-generated raster images, video or audio have been included. Add appropriate labels/watermarks
 and provenance if such assets are introduced.
 
+## Claude engine contributions (milestone 1, branch `claude/engine`)
+
+Anthropic's Claude (Claude Opus 5.5, via Claude Code) wrote, under the engine owner's direction:
+
+- The mission engine in `src/engine/` (`design.ts`, `mission.ts`, `step.ts`, `report.ts`, `random.ts`,
+  `rules.ts`, `index.ts`), implementing shared contract v1 without changing `src/shared/`.
+- The Vitest engine tests in `src/engine/tests/`.
+- The Vitest dev dependency and `test` script in `package.json` / `pnpm-lock.yaml`, agreed with the frontend teammate.
+
+The rule values in `src/engine/rules.ts` and the seeded site layouts in `src/engine/mission.ts` are
+fictional balancing values carried over from the preview rules. They are not NASA measurements,
+flight specifications or a validated engineering model; the files say so beside the values.
+No NASA datasets are used by the engine yet. The human team must review this code and disclose
+it accurately in the final submission.
+
 ## Before submission
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
