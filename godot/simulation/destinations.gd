@@ -68,9 +68,9 @@ const DESTINATIONS: Dictionary = {
 			"core_mass": 6.0,                 # kg per sealed sample core (fictional)
 			"site_jitter": 3.0,
 			"sites": [
-				{"id": "a", "name": "SCARP ICE SIGNAL", "kind": "ice", "position": Vector3(-44, 0, 26)},
-				{"id": "b", "name": "CLAY-RICH TERRACE", "kind": "minerals", "position": Vector3(41, 0, 21)},
-				{"id": "c", "name": "LAYERED DELTA FRONT", "kind": "geology", "position": Vector3(6, 0, -52)},
+				{"id": "mars-a", "name": "SCARP ICE SIGNAL", "kind": "ice", "position": Vector3(-44, 0, 26)},
+				{"id": "mars-b", "name": "CLAY-RICH TERRACE", "kind": "minerals", "position": Vector3(41, 0, 21)},
+				{"id": "mars-c", "name": "LAYERED DELTA FRONT", "kind": "geology", "position": Vector3(6, 0, -52)},
 			],
 			"intro": "Aurora Delta touchdown. Three signals from orbit. Samples must be flown home to count.",
 		},

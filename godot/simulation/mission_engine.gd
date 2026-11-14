@@ -8,12 +8,17 @@ extends RefCounted
 ##   science_returned, distance_travelled, outpost_deployed, outpost_position (null | Vector3),
 ##   sites (Array of {id, name, kind, position, scanned, sampled, finding, confidence}), log (newest first).
 ##
+## Spaceflight extension (additive, proposed for contract v2): create_surface_mission() creates a mission
+## on any explorable destination and adds a "destination" key; the Moon's rules and create_mission() are
+## unchanged. Destinations with "sample_return" only transmit scan data: sample science must be flown home.
+##
 ## Intentional differences from the temporary preview, all documented in simulation/README.md:
 ## solar designs carry 0 fuel cells; moves the battery cannot fully pay for are shortened to what it
 ## can pay for (instead of being dropped); rejected actions explain themselves in the log.
 const Rules = preload("res://simulation/rules.gd")
 const Design = preload("res://simulation/design.gd")
 const Evidence = preload("res://simulation/evidence.gd")
+const Destinations = preload("res://simulation/destinations.gd")
 
 const ACTIONS: Array[String] = ["launch", "scan", "sample", "recharge", "transmit", "deploy", "finish"]
 
@@ -23,7 +28,18 @@ func review_design(config: Dictionary) -> Dictionary:
 	return Design.review(config)
 
 func create_mission(config: Dictionary, mission_seed: int) -> Dictionary:
-	var rules: Dictionary = Rules.MOON
+	return _new_mission(config, mission_seed, Rules.MOON, "layout")
+
+## Additive spaceflight method: a mission on any explorable destination (see simulation/destinations.gd).
+## Returns {} for landmarks or unknown destinations.
+func create_surface_mission(config: Dictionary, mission_seed: int, destination_id: String) -> Dictionary:
+	if not Destinations.is_explorable(destination_id): return {}
+	var rules: Dictionary = Destinations.surface_rules(destination_id)
+	var state: Dictionary = _new_mission(config, mission_seed, rules, "layout" if destination_id == "moon" else "layout-" + destination_id)
+	state["destination"] = destination_id
+	return state
+
+func _new_mission(config: Dictionary, mission_seed: int, rules: Dictionary, layout_stream: String) -> Dictionary:
 	var capacity: float = Design.battery_capacity(config)
 	return {
 		"seed": mission_seed,
@@ -38,7 +54,7 @@ func create_mission(config: Dictionary, mission_seed: int) -> Dictionary:
 		"distance_travelled": 0.0,
 		"outpost_deployed": false,
 		"outpost_position": null,
-		"sites": generate_sites(mission_seed, rules),
+		"sites": generate_sites(mission_seed, rules, layout_stream),
 		"log": [str(rules.intro)],
 	}
 
@@ -124,16 +140,16 @@ func get_report(state: Dictionary) -> Dictionary:
 
 # ----------------------------------------------------------------------------------------- helpers
 
-## Rules for the surface this mission is on. Contract v1 has a single lunar surface.
-func surface_rules(_state: Dictionary) -> Dictionary:
-	return Rules.MOON
+## Rules for the surface this mission is on. Missions without a "destination" key are lunar (contract v1).
+func surface_rules(state: Dictionary) -> Dictionary:
+	return Destinations.surface_rules(str(state.get("destination", "moon")))
 
 static func flat_distance(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
 
-static func generate_sites(mission_seed: int, rules: Dictionary) -> Array:
+static func generate_sites(mission_seed: int, rules: Dictionary, layout_stream: String = "layout") -> Array:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = Evidence.stream_seed(mission_seed, "layout", "sites")
+	rng.seed = Evidence.stream_seed(mission_seed, layout_stream, "sites")
 	var jitter: float = float(rules.site_jitter)
 	var sites: Array = []
 	for template in rules.sites:
@@ -210,10 +226,17 @@ func _recharge(s: Dictionary, rules: Dictionary) -> void:
 		_record(s, "%s: +%.1f energy." % [source, float(s.energy) - before])
 
 func _transmit(s: Dictionary, rules: Dictionary) -> void:
-	var pending: int = int(s.science_collected) - int(s.science_returned)
-	if pending <= 0: _record(s, "No new evidence to transmit.")
+	var sendable: int = int(s.science_collected)
+	if rules.get("sample_return", false):
+		# Only scan data can be radioed home; sample science travels as physical cores.
+		sendable = 0
+		for site in s.sites:
+			if site.scanned: sendable += int(rules.scan_science)
+	var pending: int = sendable - int(s.science_returned)
+	if pending <= 0:
+		_record(s, "No new data to transmit. Sample cores must be flown home." if rules.get("sample_return", false) else "No new evidence to transmit.")
 	elif _spend(s, float(rules.transmit_energy)):
-		s.science_returned = s.science_collected
+		s.science_returned = sendable
 		_record(s, "%d science received on Earth." % pending)
 
 func _deploy(s: Dictionary, rules: Dictionary) -> void:

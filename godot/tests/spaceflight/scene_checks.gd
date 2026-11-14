@@ -100,3 +100,42 @@ func stage_2_space_travel() -> void:
 	check(demo.ship.fuel < Ship.FUEL_LOADS.standard, "Stage 2: takeoff paid ascent fuel")
 	demo.queue_free()
 	await frames(2)
+
+func stage_3_mars_surface() -> void:
+	var demo: Node = load("res://scenes/spaceflight/mars_surface.tscn").instantiate()
+	root.add_child(demo)
+	await frames(90)
+	var surface: Node3D = demo.surface
+	check(surface.world.get_script() == load("res://spaceflight/mars_world.gd"), "Stage 3: Mars uses its own world")
+	check(surface.state.destination == "mars", "Stage 3: Mars mission state")
+	check(surface.rover.is_on_floor(), "Stage 3: rover settles on Martian terrain")
+	var before: Dictionary = surface.state.duplicate(true)
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_W
+	key.keycode = KEY_W
+	key.pressed = true
+	Input.parse_input_event(key)
+	await frames(90)
+	key = key.duplicate()
+	key.pressed = false
+	Input.parse_input_event(key)
+	await frames(5)
+	var travelled: float = float(surface.state.distance_travelled) - float(before.distance_travelled)
+	check(travelled > 2.0, "Stage 3: W drives the rover on Mars")
+	check(absf((before.energy - surface.state.energy) - travelled * 0.2) < 0.001, "Stage 3: Mars driving costs 0.2 energy per metre")
+	check(not surface.try_board() or surface.board_distance() <= 9.0, "Stage 3: boarding needs the ship in range")
+	var target: Dictionary = surface.state.sites[1]
+	surface.state.position = target.position
+	surface.rover.global_position = target.position + Vector3(0, surface.world.terrain_height(target.position.x, target.position.z) + 0.5, 0)
+	surface.act("scan")
+	surface.act("sample")
+	check(surface.state.sites[1].finding in ["confirmed", "ruled-out"], "Stage 3: scan and sample settle a Mars signal")
+	check(surface.world.marker_nodes["mars-b"].label.text.find(str(surface.state.sites[1].confidence)) >= 0, "Stage 3: marker shows the reported confidence")
+	surface.act("transmit")
+	check(surface.state.science_returned == 20, "Stage 3: only scan data radioed from Mars")
+	var boarded: Array[bool] = []
+	surface.board_requested.connect(func() -> void: boarded.append(true))
+	surface.state.position = Vector3(0, 0, -6)
+	check(surface.try_board() and boarded.size() == 1, "Stage 3: G boards when the rover is at the ship")
+	demo.queue_free()
+	await frames(2)
