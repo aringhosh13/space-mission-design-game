@@ -232,16 +232,27 @@ func _shelter_and_pad() -> void:
 		var shelter := Node3D.new()
 		shelter.position = Vector3(at.x, terrain_height(at.x, at.z), at.z)
 		add_child(shelter)
-		var dome := SphereMesh.new()
-		dome.radius = 5.5
-		dome.height = 6.0
-		dome.is_hemisphere = true
-		_mesh(shelter, dome, Vector3.ZERO, _material(Color("e9e2d4"), 0.6))
-		var door := BoxMesh.new()
-		door.size = Vector3(2.4, 2.6, 1.0)
-		_mesh(shelter, door, Vector3(0, 1.3, 5.2), _material(Color("2a3240")))
+		# Open canopy on pillars, so the rover and camera can see under it (presentation only).
+		var roof := CylinderMesh.new()
+		roof.top_radius = 4.0
+		roof.bottom_radius = 7.5
+		roof.height = 1.2
+		roof.radial_segments = 16
+		_mesh(shelter, roof, Vector3(0, 6.2, 0), _material(Color("e9e2d4"), 0.6))
+		for k in range(6):
+			var angle: float = TAU * k / 6.0
+			var pillar := CylinderMesh.new()
+			pillar.top_radius = 0.25
+			pillar.bottom_radius = 0.3
+			pillar.height = 6.0
+			_mesh(shelter, pillar, Vector3(cos(angle) * 6.6, 3.0, sin(angle) * 6.6), _material(Color("9aa3ad"), 0.5))
+		var floor_pad := CylinderMesh.new()
+		floor_pad.top_radius = 7.0
+		floor_pad.bottom_radius = 7.2
+		floor_pad.height = 0.2
+		_mesh(shelter, floor_pad, Vector3(0, 0.05, 0), _material(Color("6d625a")))
 		var lamp := OmniLight3D.new()
-		lamp.position = Vector3(0, 4.5, 6.5)
+		lamp.position = Vector3(0, 5.2, 0)
 		lamp.light_color = Color("ffd9a0")
 		lamp.light_energy = 1.6
 		lamp.omni_range = 18.0
