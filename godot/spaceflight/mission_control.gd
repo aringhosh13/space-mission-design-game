@@ -19,15 +19,15 @@ func _ready() -> void:
 	style.set_corner_radius_all(6)
 	style.content_margin_left = 14
 	banner = Panel.new()
-	banner.position = Vector2(330, 610)
-	banner.size = Vector2(620, 54)
+	banner.position = Vector2(365, 94)
+	banner.size = Vector2(654, 54)
 	banner.add_theme_stylebox_override("panel", style)
 	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	banner.visible = false
 	add_child(banner)
 	banner_label = Label.new()
 	banner_label.position = Vector2(14, 6)
-	banner_label.size = Vector2(592, 44)
+	banner_label.size = Vector2(626, 44)
 	banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	banner_label.add_theme_font_size_override("font_size", 13)
 	banner_label.add_theme_color_override("font_color", Color("d8efe6"))

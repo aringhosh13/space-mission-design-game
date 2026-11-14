@@ -52,6 +52,7 @@ var _weather_phase: String = ""
 var _last_integrity: float = -1.0
 var atlas: CanvasLayer
 var _atlas_previous_pause: bool = false
+var _hud_checkpoints: Array = []
 
 func setup(id: String, mission_state: Dictionary, extra: Dictionary = {}) -> void:
 	destination_id = id
@@ -87,6 +88,10 @@ func _ready() -> void:
 	if rover.has_signal("impact_reported"): rover.impact_reported.connect(report_impact)
 	hud = SurfaceHUD.new()
 	add_child(hud)
+	hud.action_requested.connect(func(action: String) -> void:
+		if paused: return
+		if action == "board": try_board()
+		else: act(action))
 	_sync()
 
 func board_distance() -> float:
@@ -166,6 +171,7 @@ func repair() -> void:
 	_sync()
 
 func set_checkpoints(checkpoints: Array) -> void:
+	_hud_checkpoints = checkpoints.duplicate(true)
 	if world.has_method("update_checkpoints"): world.update_checkpoints(checkpoints)
 	elif beacons: beacons.update_checkpoints(checkpoints)
 
@@ -198,6 +204,11 @@ func _sync() -> void:
 	hud_info["title"] = info.get("title", "BLUE HORIZON  /  %s SURFACE" % str(def.name).to_upper())
 	hud_info["can_repair"] = integrity < 100.0 and (engine.at_pad(state) or engine.in_shelter(state))
 	hud_info["in_shelter"] = engine.in_shelter(state)
+	hud_info["heading"] = rover.yaw
+	hud_info["pad"] = def.pad
+	hud_info["radar_range"] = ceilf(float(rules.map_limit) / 100.0) * 100.0
+	hud_info["checkpoints"] = _hud_checkpoints
+	hud_info["paused"] = paused
 	hud.update_surface(state, hud_info)
 	rover.driving = state.phase == "surface" and not paused
 	rover.can_drive = float(state.energy) > 0.02

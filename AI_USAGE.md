@@ -161,6 +161,16 @@ native-window focus resets. It inherits the original objectives and manual landi
 gameplay rules nor mission resources. Initial failed GPU driver runs are documented honestly.
 This integration adds no NASA Mars data and does not claim human control/difficulty playtesting.
 
+## Codex compact campaign HUD
+
+At the user's request and using their earlier HUD screenshot as the layout reference, Codex made the campaign
+surface HUD compact, restored the survey minimap on both worlds, connected clickable action buttons and moved
+temporary Mission Control banners above the gameplay area. Full original notes and recent logs remain in
+scrollable regions; objectives, findings/confidence, science, power, ship fuel, cores, integrity and weather
+remain displayed. The minimap uses only public state, the ship position and public checkpoint markers.
+Codex rendered isolated Moon/Mars fixtures and checked information retention and actual scan-button dispatch.
+No simulation, damage, science, landing or campaign rules changed.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

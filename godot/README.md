@@ -5,6 +5,11 @@
 Moon surveys, Mars sample collection, storms, repairs and checkpoint recovery. Read
 [the campaign play guide](spaceflight/CAMPAIGN.md). The configured F5 main scene remains the Moon sandbox.
 
+The compact campaign surface HUD restores the circular minimap and clickable scan/sample/power/transmit/
+station/boarding controls. Signal letters match the map, H marks the ship, and a ring marks the active
+checkpoint. Full notes and the same recent mission-log messages remain available in scrollable compact
+areas. All objective, confidence, resource, condition, weather and NASA-gravity information is retained.
+
 This is the active game direction. It opens as a standalone 3D Windows game, using Godot 4.7.2,
 not a browser wrapper. It has rover physics, terrain collisions, a following camera, scanning effects,
 equipment selection, resource investigations, power, research station placement, pause and a debrief.
