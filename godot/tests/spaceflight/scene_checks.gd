@@ -2,30 +2,130 @@ extends SceneTree
 ## Spaceflight scene checks (headless). Drives the real scenes with injected inputs, frame by frame.
 ##   godot --headless --path godot --script res://tests/spaceflight/scene_checks.gd
 ## Pure simulation rules are covered by tests/simulation; this checks scenes are wired to them.
+## Any Godot runtime error (script errors, engine error macros) raised while the checks run is captured
+## through a Logger and fails the run.
+## Note: the stage 4 loop places the rover at sites and refills its battery to test scene wiring quickly;
+## flight legs use player-equivalent inputs. tests/integration/expedition_smoke.gd (Codex) is the fully
+## driven route with no state edits.
 const Ship = preload("res://simulation/ship_flight.gd")
+
+class ErrorCatcher extends Logger:
+	var errors: Array[String] = []
+	var mutex := Mutex.new()
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String,
+			_notify: bool, _kind: int, _backtraces: Array[ScriptBacktrace]) -> void:
+		mutex.lock()
+		errors.append("%s:%d in %s(): %s %s" % [file, line, function, code, rationale])
+		mutex.unlock()
+	func _log_message(_message: String, _error: bool) -> void:
+		pass
 
 var failures: Array[String] = []
 var checks: int = 0
+var catcher := ErrorCatcher.new()
 
 func _initialize() -> void:
+	OS.add_logger(catcher)
 	_run.call_deferred()
 
 func check(condition: bool, message: String) -> void:
 	checks += 1
-	if not condition:
-		failures.append(message)
-		push_error(message)
+	if not condition: failures.append(message)
 
 func frames(count: int) -> void:
 	for i in range(count): await physics_frame
 
 func _run() -> void:
 	await stage_1_ship()
-	for extra in ["stage_2_space_travel", "stage_3_mars_surface", "stage_4_expedition_loop"]:
+	for extra in ["stage_2_space_travel", "marker_on_camera_plane", "stage_3_mars_surface",
+			"stage_4_expedition_loop", "finish_during_takeoff", "pause_during_takeoff"]:
 		if has_method(extra): await call(extra)
-	if failures.is_empty(): print("PASS: spaceflight scene checks (%d checks)" % checks)
-	else: print("FAIL: ", failures)
+	OS.remove_logger(catcher)
+	for error in catcher.errors: failures.append("Runtime error: " + error)
+	for failure in failures: print("FAIL: ", failure)
+	print("%s: spaceflight scene checks (%d checks, %d failures, %d runtime errors)" % [
+		"PASS" if failures.is_empty() else "FAIL", checks, failures.size(), catcher.errors.size()])
 	quit(0 if failures.is_empty() else 1)
+
+## Regression (INTEGRATION_REVIEW #2): targets on, beside or behind the camera plane must not be projected.
+func marker_on_camera_plane() -> void:
+	var holder := Node3D.new()
+	root.add_child(holder)
+	var camera := Camera3D.new()
+	holder.add_child(camera)
+	camera.current = true
+	var hud: CanvasLayer = load("res://spaceflight/flight_hud.gd").new()
+	holder.add_child(hud)
+	await frames(2)
+	var before: int = catcher.errors.size()
+	var centre: Vector2 = hud.root.get_viewport_rect().size * 0.5
+	hud.place_marker(camera, Vector3(25, 0, 0), "BESIDE  25 u")       # exactly on the camera plane, to the right
+	check(hud.marker.visible and hud.marker.position.x + 110.0 > centre.x + 100.0, "Marker: on-plane target sits on the right edge")
+	hud.place_marker(camera, Vector3(0, 0, 0), "AT CAMERA  0 u")      # at the camera position
+	check(hud.marker.visible, "Marker: target at the camera position handled")
+	hud.place_marker(camera, Vector3(0, -3, 40), "BEHIND  40 u")      # behind and below
+	check(hud.marker.position.y + 10.0 > centre.y + 100.0, "Marker: behind-and-below target points down")
+	hud.place_marker(camera, Vector3(0, 0, -50), "AHEAD  50 u")       # in front
+	check(hud.marker.text.begins_with("◇"), "Marker: target ahead is projected on screen")
+	hud.place_marker(camera, Vector3(NAN, 0, 0), "BAD")
+	check(not hud.marker.visible, "Marker: non-finite target hidden")
+	check(catcher.errors.size() == before, "Marker: no projection errors (%d new)" % (catcher.errors.size() - before))
+	holder.queue_free()
+	await frames(2)
+
+## Regression (INTEGRATION_REVIEW #1): ending the expedition during the takeoff fade must cancel the
+## continuation; no flight scene may start behind the debrief.
+func finish_during_takeoff() -> void:
+	var Destinations = load("res://simulation/destinations.gd")
+	var game: Node = load("res://scenes/spaceflight/expedition_demo.tscn").instantiate()
+	root.add_child(game)
+	await frames(5)
+	game.start({"battery": "compact", "power": "solar", "instrument": "drill"}, "standard")
+	await frames(20)
+	place_rover(game, Destinations.get_def("moon").pad + Vector3(0, 0, 5))
+	game.current.try_board()
+	var ship_before: Dictionary = game.expedition.ship.duplicate(true)
+	game.takeoff("mars")
+	await frames(5)
+	game.current.menu_requested.emit()          # Escape on the (paused) surface during the fade
+	check(game.ui.active == "pause", "Finish during takeoff: pause menu available during the fade")
+	game.ui.choice.emit("finish", "")
+	check(not game.transition.playing, "Finish during takeoff: transition cancelled at once")
+	await frames(90)
+	check(game.expedition.phase == "complete" and game.ui.active == "report", "Finish during takeoff: debrief kept")
+	check(not game.current.has_method("try_land"), "Finish during takeoff: no flight scene installed")
+	var ship_after: Dictionary = game.expedition.ship.duplicate(true)
+	await frames(30)
+	check(game.expedition.ship == ship_after, "Finish during takeoff: nothing changes the completed expedition")
+	check(float(ship_after.fuel) < float(ship_before.fuel), "Finish during takeoff: the ascent burn already paid is reported")
+	game.queue_free()
+	await frames(2)
+
+## Pause during the takeoff fade: resume before the cover hands over to an unpaused flight scene;
+## a menu still open at the cover installs the flight scene paused until resumed.
+func pause_during_takeoff() -> void:
+	var Destinations = load("res://simulation/destinations.gd")
+	for hold_menu in [false, true]:
+		var game: Node = load("res://scenes/spaceflight/expedition_demo.tscn").instantiate()
+		root.add_child(game)
+		await frames(5)
+		game.start({"battery": "compact", "power": "solar", "instrument": "drill"}, "standard")
+		await frames(20)
+		place_rover(game, Destinations.get_def("moon").pad + Vector3(0, 0, 5))
+		game.current.try_board()
+		game.takeoff("mars")
+		await frames(3)
+		game.current.menu_requested.emit()
+		if not hold_menu: game.ui.choice.emit("resume", "")
+		check(game.current.paused, "Pause during takeoff (hold=%s): outgoing surface stays paused" % hold_menu)
+		await frames(45)
+		check(game.current.has_method("try_land"), "Pause during takeoff (hold=%s): flight scene installed" % hold_menu)
+		check(game.current.paused == hold_menu, "Pause during takeoff (hold=%s): flight paused only while the menu is open" % hold_menu)
+		if hold_menu:
+			game.ui.choice.emit("resume", "")
+			check(not game.current.paused and game.ui.active == "", "Pause during takeoff: resume releases the flight scene")
+		game.queue_free()
+		await frames(2)
 
 func stage_1_ship() -> void:
 	var scene: Node = load("res://scenes/spaceflight/ship_sandbox.tscn").instantiate()
@@ -197,11 +297,12 @@ func stage_4_expedition_loop() -> void:
 	used = await fly_to(game.current, "moon")
 	check(used > 0, "Stage 4: flew home")
 	check(game.current.try_land(), "Stage 4: landing at the Moon base")
-	await frames(60)
-	check(game.expedition.delivered_science == 105, "Stage 4: cores delivered home")
+	check(game.expedition.delivered_science == 105, "Stage 4: cores delivered on touchdown")
+	# Regression (INTEGRATION_REVIEW #1, landing): ending during the landing fade cancels the continuation.
 	game.finish()
-	await frames(2)
-	check(game.ui.active == "report", "Stage 4: debrief shown")
+	await frames(150)
+	check(game.ui.active == "report" and game.expedition.phase == "complete", "Stage 4: debrief shown and kept")
+	check(not game.current.has_method("try_board"), "Stage 4: no surface scene installed after ending during landing")
 	var report: Dictionary = load("res://simulation/expedition.gd").report(game.expedition)
 	check(report.home and report.science_returned == 40 + 60 + 105, "Stage 4: debrief counts every returned unit (%d)" % report.science_returned)
 	game.queue_free()

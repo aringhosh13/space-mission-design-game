@@ -60,9 +60,10 @@ func _ready() -> void:
 	camera.target = rig
 	camera.current = true
 	add_child(camera)
+	rig.apply(ship)
+	camera.snap_now()   # place the camera before the first HUD update projects anything
 	hud = FlightHUD.new()
 	add_child(hud)
-	rig.apply(ship)
 	select_target(target_id)
 
 func select_target(id: String) -> void:
