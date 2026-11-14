@@ -15,6 +15,12 @@ var paused: bool = false
 var ui_clock: float = 0.0
 
 func _ready() -> void:
+	# Release templates disable command-line scene overrides. Route our own preview flag instead.
+	if OS.get_cmdline_user_args().has("--expedition"):
+		set_process(false)
+		set_process_unhandled_input(false)
+		_open_expedition.call_deferred()
+		return
 	DisplayServer.window_set_title("Blue Horizon · Moon Expedition")
 	mission_seed = int(get_tree().get_meta("blue_horizon_seed", 42))
 	state = engine.create_mission(config, mission_seed)
@@ -31,6 +37,13 @@ func _ready() -> void:
 	hud.config_changed.connect(_on_config)
 	hud.show_planning()
 	_sync()
+
+func _open_expedition() -> void:
+	DisplayServer.window_set_title("Blue Horizon · Moon / Mars Expedition")
+	var result: Error = get_tree().change_scene_to_file("res://scenes/spaceflight/expedition_demo.tscn")
+	if result != OK:
+		push_error("Could not open the expedition: %s" % error_string(result))
+		get_tree().quit(1)
 
 func _on_config(next_config: Dictionary) -> void:
 	if state.phase != "planning": return

@@ -1,17 +1,20 @@
 # Native integration review — 2026-11-14
 
 Local integration branch: `codex/native-integration`.
-Combines Codex's Moon environment (`eb7c9fd`), PR #3 (`4f00ba5`) and PR #4 (`ab4d9a2`).
+Combines Codex's Moon environment (`eb7c9fd`), PR #3 (`4f00ba5`) and PR #4 with Claude's fix (`762b0f8`).
 The merge preserved both developers' AI disclosures. No GitHub PR was merged or retargeted.
-No Claude-owned feature source, shared contract or project setting was edited during this review.
+No Claude-owned feature source, shared contract or project setting was edited by Codex during this review.
+Codex's main script adds an explicit `-- --expedition` launch option for the Windows preview package;
+the configured default main scene remains the lunar mission.
 
 ## Results on official Godot 4.7.2, Windows
 
 - Native simulation: 92 tests, 45,587 assertions, zero failures.
-- Existing spaceflight scene checks: 54 checks pass.
+- Spaceflight scene checks: 74 checks pass with zero runtime errors after Claude's fix.
 - Codex lunar mission/physics smoke check: passes with the real OpenGL renderer (RTX 4050), including track placement.
 - Godot editor import and Windows release export: pass.
-- New `tests/integration/expedition_smoke.gd`: fails on two reproduced integration defects below.
+- `tests/integration/expedition_smoke.gd`: passes headless and on the RTX 4050 after Claude's fix,
+  including the driven round trip and the regression for ending during takeoff. No runtime errors.
 
 The new check drives to the mineral site on each world through real rover physics, scans/samples/transmits
 through keyboard events, drives back to board, flies both legs through player-equivalent autopilot inputs,
@@ -23,7 +26,10 @@ assessment of steering/camera feel or proof that every site/equipment combinatio
 The earlier PR #4 full-loop fixture teleports the rover and refills its battery for investigations. It tests
 scene wiring and flight, but should not be described as an entire mission using only player inputs.
 
-## Fix before promoting PR #4
+## Resolved findings from the first review
+
+The following defects were reproduced on `ab4d9a2`. Claude fixed them in `762b0f8`; Codex independently
+confirmed the fixes in the combined project. The descriptions below preserve the original reproductions.
 
 ### 1. Takeoff continuation resumes flight after the player has ended the expedition
 
@@ -73,19 +79,20 @@ For captured views of the actual driven expedition (requires graphics):
 godot --path godot --fixed-fps 60 --script res://tests/integration/expedition_smoke.gd -- --capture-dir /absolute/output/folder
 ```
 
-The integration check is intentionally red until the two defects are fixed. It does not mask runtime errors.
+The integration check failed on the old code and now passes. It does not mask runtime errors.
 It also verifies the current pause-then-end behaviour during ascent; change that assertion only if a documented
 transition input lock intentionally replaces that behaviour.
 
 ## Coordination
 
-PR #3's simulation is suitable for integration based on this review. Fix the PR #4 defects before promoting
-the expedition to the default launch scene. Keep dependent PRs intact until their bases are correctly retargeted.
+PR #3 and PR #4 with `762b0f8` are suitable for integration based on these checks.
+Keep dependent PRs intact until their bases are correctly retargeted.
 This branch is a combined review snapshot, not a substitute for the dependency order on GitHub.
 
 The existing additive `create_surface_mission` API and separate expedition state are a reasonable direction.
 No native contract v2, main-scene change or new destination work is approved or implemented by this review;
-write the exact shared schema and per-destination rule access in the next joint handoff before editing them.
+write the exact shared schema and per-destination rule access before editing them.
+The immediate next step is human playtesting of the combined Windows game, rather than another review cycle.
 
 NASA primary pages were checked against the source catalogue: Moon Facts, Mars Facts, JPL's Mars at a Glance
 and NASA's travel-time explainer. The gravity ratios, distances and travel-time descriptions are supported.

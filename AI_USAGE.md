@@ -110,6 +110,9 @@ with runtime-error capture, and documented reproduced camera/transition defects 
 The check uses real rover physics and simulated player inputs without teleporting or changing mission resources;
 it is automated verification, not a claim of human playtesting. Captured game views are engine renders of the
 AI-assisted procedural content. No new external artwork, NASA datasets or scientific observations were added.
+Codex subsequently integrated Claude's fix `762b0f8` and verified the corrected mission on the RTX 4050.
+Codex added a Windows preview launcher flag in its main script and packaged the combined native game;
+the shared project settings and configured default lunar scene were preserved.
 
 ## Before submission (native and browser reference)
 

@@ -42,8 +42,12 @@ duplicate scans, sample/transmit flow, mission closure, terrain collision and ke
 
 The optional Moon → Mars → home expedition from PR #4 is available by opening
 `scenes/spaceflight/expedition_demo.tscn` and pressing F6. F5 still runs the lunar mission.
-Read [the integration review](INTEGRATION_REVIEW.md) for two reproduced issues that need fixes before
-making the expedition the default game, and [the flight instructions](spaceflight/README.md) for controls.
+Claude's fix `762b0f8` resolves the transition and camera defects found in integration review.
+Read [the integration review](INTEGRATION_REVIEW.md) for verification results and
+[the flight instructions](spaceflight/README.md) for controls.
+The Windows package's `Play Blue Horizon.cmd` opens the expedition via `BlueHorizon.exe -- --expedition`.
+This explicit launch option works with official release templates, which disable command-line scene overrides.
+Opening the executable directly still runs the lunar mission.
 
 All scene geometry, resource distributions and equipment balancing values are fictional educational content
 created with AI assistance. The flight expedition uses cited NASA facts for gravity and a derived solar factor;
