@@ -15,6 +15,7 @@ var paused: bool = false
 var ui_clock: float = 0.0
 
 func _ready() -> void:
+	DisplayServer.window_set_title("Blue Horizon · Moon Expedition")
 	mission_seed = int(get_tree().get_meta("blue_horizon_seed", 42))
 	state = engine.create_mission(config, mission_seed)
 	world = LunarWorld.new()
@@ -71,6 +72,7 @@ func _on_action(action: String) -> void:
 func _sync() -> void:
 	world.update_mission(state)
 	hud.update_mission(state)
+	hud.update_environment(world.presentation_for(state.position), state, rover.yaw, Vector2(rover.velocity.x, rover.velocity.z).length())
 	rover.driving = state.phase == "surface" and not paused
 	rover.can_drive = state.energy > 0.02
 

@@ -4,6 +4,10 @@ This is the active game direction. It opens as a standalone 3D Windows game, usi
 not a browser wrapper. It has rover physics, terrain collisions, a following camera, scanning effects,
 equipment selection, resource investigations, power, research station placement, pause and a debrief.
 
+The Moon environment update adds procedural regolith detail, smoother craters, an irregular crater-rim
+horizon, a landing module with approach lights, wheel tracks, terrain-following scan pulses and survey radar.
+Read [the Moon/spaceflight integration notes](MOON_INTEGRATION.md) before combining the ship feature.
+
 ## Open and play
 
 1. Download **Godot 4.7.2 standard** (not .NET) from https://godotengine.org/download/windows/.

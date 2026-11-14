@@ -7,6 +7,7 @@ Two humans use separate AI coding tools. Do not spawn subagents automatically.
 - ACTIVE NATIVE GAME: Godot 4.7.2 project under `godot/`. Read `godot/AGENTS.md` and `godot/README.md` before native changes.
 - Native Codex: `godot/scripts/`, `godot/scenes/`, `godot/preview/`, frontend integration tests.
 - Native Claude: `godot/simulation/` and native simulation tests.
+- Native Claude also owns new spaceship/travel modules under `godot/spaceflight/` and `godot/scenes/spaceflight/`, as requested by the user. Coordinate changes to the existing main scene with Codex.
 - Native joint: `godot/shared/mission_contract.gd`, `godot/project.godot`, export presets. Agree before changing these.
 - The TypeScript directories below are the preserved browser prototype and behavioral reference, not the active native game.
 - Codex: `src/main.ts`, `src/ui/`, `src/style.css`, UI preview in `src/preview/`.

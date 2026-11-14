@@ -2,6 +2,7 @@ extends CanvasLayer
 signal action_requested(action: String)
 signal config_changed(config: Dictionary)
 const Contract = preload("res://shared/mission_contract.gd")
+const Radar = preload("res://scripts/moon_radar.gd")
 var root: Control
 var overlay: Panel
 var overlay_content: VBoxContainer
@@ -17,6 +18,8 @@ var battery: OptionButton
 var power: OptionButton
 var instrument: OptionButton
 var active_overlay: String = ""
+var environment_label: Label
+var radar: Control
 
 func _ready() -> void:
 	root = Control.new()
@@ -37,6 +40,10 @@ func _ready() -> void:
 	brand.position = Vector2(34, 22)
 	var subtitle := _label(root, "SOUTH POLAR EXPEDITION  /  NATIVE PROTOTYPE", 11, Color("a4c2c6"))
 	subtitle.position = Vector2(36, 57)
+	environment_label = _label(root, "LANDING FLATS", 13, Color("c0d3cd"))
+	environment_label.position = Vector2(430, 28)
+	environment_label.size = Vector2(440, 54)
+	environment_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	objective = _label(root, "INVESTIGATE  /  TRANSMIT  /  ESTABLISH", 14, Color("d7ddc5"))
 	objective.position = Vector2(36, 96)
 	var power_panel := Panel.new()
@@ -44,6 +51,12 @@ func _ready() -> void:
 	power_panel.size = Vector2(235, 140)
 	power_panel.add_theme_stylebox_override("panel", _style(Color(0.02, 0.05, 0.09, 0.85), Color("334a57")))
 	root.add_child(power_panel)
+	var field_panel := Panel.new()
+	field_panel.position = Vector2(24, 128)
+	field_panel.size = Vector2(282, 228)
+	field_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	field_panel.add_theme_stylebox_override("panel", _style(Color(0.015, 0.03, 0.05, 0.62), Color(0.2, 0.3, 0.35, 0.35)))
+	root.add_child(field_panel)
 	telemetry = _label(power_panel, "", 15, Color("d8e5dd"))
 	telemetry.position = Vector2(16, 12)
 	energy_bar = ProgressBar.new()
@@ -57,7 +70,7 @@ func _ready() -> void:
 	site_list.size = Vector2(340, 230)
 	log_label = _label(root, "", 13, Color("b7cccd"))
 	log_label.position = Vector2(36, 492)
-	log_label.size = Vector2(470, 112)
+	log_label.size = Vector2(325, 112)
 	log_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	target_label = _label(root, "", 18, Color("f3d29a"))
 	target_label.position = Vector2(390, 546)
@@ -76,6 +89,10 @@ func _ready() -> void:
 	for item in [["Scan [E]", "scan"], ["Sample [Q]", "sample"], ["Power [R]", "recharge"], ["Transmit [T]", "transmit"], ["Station [B]", "deploy"]]:
 		var button := _button(bar, item[0], _action.bind(item[1]))
 		button.custom_minimum_size = Vector2(112, 36)
+	radar = Radar.new()
+	radar.position = Vector2(1055, 468)
+	radar.size = Vector2(170, 185)
+	root.add_child(radar)
 	overlay = Panel.new()
 	overlay.position = Vector2(0, 0)
 	overlay.size = Vector2(1280, 720)
@@ -217,3 +234,9 @@ func update_mission(state: Dictionary) -> void:
 	var lines: Array = state.log.slice(0, 3)
 	log_label.text = "MISSION LOG\n" + "\n".join(lines)
 	objective.text = "RETURN EVIDENCE TO EARTH  /  STATION " + ("OPERATIONAL" if state.outpost_deployed else "NOT DEPLOYED")
+
+func update_environment(presentation: Dictionary, state: Dictionary, heading: float, speed: float) -> void:
+	var degrees: int = posmod(roundi(rad_to_deg(heading)), 360)
+	environment_label.text = "%s  /  %s\nVIEW %03d°   SPEED %.1f m/s   SLOPE %.0f°   BASE %d m" % [
+		presentation.region, presentation.exposure, degrees, speed, presentation.slope, roundi(presentation.base_distance)]
+	radar.update_view(state, heading)

@@ -62,7 +62,15 @@ The TypeScript engine's 83 tests were not ported and do not establish native sim
 Claude's next task is the independent GDScript production simulation and its own native tests.
 Generated scenery is code-native geometry and shaders, not NASA imagery. No generated image, audio or video assets are bundled.
 
-## Before submission (native and browser reference)
+## Codex Moon environment update
+
+Codex created the procedural regolith shader, fictional crater/rim terrain, decorative landing module,
+approach lights, rover track rendering, terrain-following scan visualization, local radar and scene hooks for spaceflight.
+Codex also improved rover/camera presentation and ran native physics and real-renderer integration checks.
+All scene assets are generated from code; no NASA imagery, elevation products or third-party artwork is included.
+The environment is illustrative, and Earth sky scale/position are composed for gameplay.
+
+## Before final submission
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
 the game. Review the current submission guide for disclosure requirements and enter the team's

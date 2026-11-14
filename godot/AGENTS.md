@@ -8,6 +8,7 @@ Read `README.md`, `CLAUDE_HANDOFF.md` and `shared/mission_contract.gd` here befo
 Ownership:
 - Codex: scenes, rover/camera/terrain/HUD scripts, preview rules and integration checks.
 - Claude: `simulation/` and tests of the native production simulation.
+- The user also assigned Claude spaceship/planet travel: new `spaceflight/` modules and `scenes/spaceflight/` scenes, after the simulation port. Existing main/Moon/rover/HUD integration remains with Codex.
 - Joint: shared contract, project settings and export presets; agree before edits.
 
 Simulation is pure state transitions, with no scene-tree, input, physics or rendering dependencies.
