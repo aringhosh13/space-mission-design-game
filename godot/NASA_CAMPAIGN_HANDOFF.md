@@ -4,7 +4,8 @@ User request: NASA-inspired story missions, multiple checkpoints, much larger ex
 player-controlled landing, NASA-derived terrain, Mars dust storms and gentle rover impact damage.
 This is a fictional future expedition informed by NASA science, not a recreation of an actual mission.
 
-Baseline: `codex/native-integration` at `d940a44`, including the verified PR #4 fix `762b0f8`.
+Baseline: latest `codex/native-integration`, including the verified PR #4 fix `762b0f8` and Codex's NASA Moon
+preparation. The pre-Moon integration point was `d940a44`; do not reset to it and lose the new Moon work.
 Codex's next branch is `codex/nasa-moon`. Claude's new branch should be `claude/nasa-campaign`.
 Preserve uncommitted work, read applicable AGENTS files and do not merge/retarget old PRs as part of this task.
 
@@ -89,8 +90,12 @@ contract before implementing them, and keep the simulation independent of Nodes,
   checkpoint snapshot; optional `landing: Dictionary`; additive `landing` phase during final descent.
 - Presentation checkpoints: array of `{id: String, title: String, position: Vector3, completed: bool, active: bool}`.
   Codex world only draws these; Claude campaign rules determine completion and rewards.
-- New pure engine methods for elapsed time, impact, repair and landing progression. Name and document these
-  in the contract; keep existing lunar consumers working when optional fields are absent.
+- Agreed pure mission methods: `advance_surface(state, dt) -> Dictionary`, `apply_impact(state, impact_speed)
+  -> Dictionary`, `repair_rover(state) -> Dictionary`. Expedition rules authorize repair proximity; the
+  rover scene never awards health itself. Keep existing lunar consumers working without optional fields.
+- Agreed expedition methods: `begin_landing(state, destination_id)`, `step_landing(state, controls, dt)`,
+  `recover_checkpoint(state)` (all return a new Dictionary), and `checkpoint_list(state) -> Array` for the
+  public presentation entries. Document exact control keys and landing telemetry beside the contract.
 - Read map bounds and interaction distances from destination rules rather than one global Moon constant.
   The configured main scene/export presets stay unchanged; the existing expedition launcher remains valid.
 
@@ -109,3 +114,13 @@ Write meaningful tests for progress/recovery, no duplicate science, impact coold
 storm/solar effects, manual touchdown and transition cancellation. Run the existing simulation, scene and
 driven-route checks, adapting the input driver for deliberate new controls without weakening assertions.
 Update NASA references and AI_USAGE honestly. Open one new PR with a short play guide and captures.
+Target `codex/native-integration` so the diff shows your campaign additions, not the entire native migration.
+
+## Codex Moon implementation now available on this branch
+
+Read `data/terrain/README.md` for the actual NASA product and distortions, and `MOON_INTEGRATION.md` for
+ready-to-use hooks. `scripts/moon_atlas.gd` implements show_map/hide_map/is_open and close_requested;
+connect it to expedition pause state on Moon surfaces. It is already connected to M in the standalone Moon.
+The renderer can draw a much larger region, but legacy movement bounds deliberately remain unchanged until
+your destination-rule update. Physical impacts currently provide feedback/telemetry only; your simulation
+owns damage and repairs. No engine, spaceflight or shared configuration source was changed by Codex.

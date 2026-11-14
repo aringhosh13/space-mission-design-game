@@ -1,6 +1,7 @@
 extends CharacterBody3D
 ## Frontend-owned physics/camera. The engine adapter alone authorizes travel and charges power.
 signal attempted_move(proposed: Vector3)
+signal impact_reported(impact_speed: float)
 var driving: bool = false
 var can_drive: bool = true
 var visual: Node3D
@@ -12,6 +13,22 @@ var camera_distance: float = 11.5
 var view_target: Vector3 = Vector3.ZERO
 var has_camera_target: bool = false
 var drive_speed: float = 6.0
+var integrity: float = 100.0
+var condition_speed_factor: float = 1.0
+var _impact_cooldown: float = 0.0
+var _impact_flash: float = 0.0
+var _body_material: StandardMaterial3D
+
+## The engine owns integrity; the rover only applies its visual and mobility consequences.
+func set_condition(value: float) -> void:
+	integrity = clampf(value, 35.0, 100.0)
+	condition_speed_factor = lerpf(0.8, 1.0, (integrity - 35.0) / 65.0)
+
+func _report_impact(speed: float) -> void:
+	if not driving or speed < 5.0 or _impact_cooldown > 0.0: return
+	_impact_cooldown = 1.0
+	_impact_flash = 0.35
+	impact_reported.emit(speed)
 
 func _ready() -> void:
 	floor_snap_length = 1.8
@@ -25,6 +42,7 @@ func _ready() -> void:
 	visual = Node3D.new()
 	add_child(visual)
 	var body_material := StandardMaterial3D.new()
+	_body_material = body_material
 	body_material.albedo_color = Color("ded9c5")
 	body_material.metallic = 0.3
 	var chassis := BoxMesh.new()
@@ -96,19 +114,27 @@ func _add_mesh(shape: Mesh, location: Vector3, material: Material) -> MeshInstan
 	return instance
 
 func _physics_process(delta: float) -> void:
+	_impact_cooldown = maxf(0.0, _impact_cooldown - delta)
 	var direction := Vector3.ZERO
 	if driving and can_drive:
 		var keys := Vector2(float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 			float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 		if keys.length() > 1.0: keys = keys.normalized()
 		direction = Vector3(keys.x, 0, keys.y).rotated(Vector3.UP, yaw)
-	var target_speed: Vector3 = direction * drive_speed
+	var target_speed: Vector3 = direction * drive_speed * condition_speed_factor
 	velocity.x = move_toward(velocity.x, target_speed.x, 20.0 * delta) if driving else 0.0
 	velocity.z = move_toward(velocity.z, target_speed.z, 20.0 * delta) if driving else 0.0
 	if not is_on_floor(): velocity.y -= 6.0 * delta
 	else: velocity.y = -0.5
 	var before: Vector3 = global_position
+	var airborne: bool = not is_on_floor()
+	var approach_velocity: Vector3 = velocity
 	move_and_slide()
+	if airborne and is_on_floor(): _report_impact(maxf(0.0, -approach_velocity.y))
+	for index in range(get_slide_collision_count()):
+		var collision: KinematicCollision3D = get_slide_collision(index)
+		if collision.get_normal().y < 0.6:
+			_report_impact(maxf(0.0, -approach_velocity.dot(collision.get_normal())))
 	if global_position.distance_to(before) > 0.0001 and driving:
 		attempted_move.emit(global_position)
 	if direction.length() > 0.1:
@@ -121,6 +147,10 @@ func _physics_process(delta: float) -> void:
 		visual.rotation.z = lerpf(visual.rotation.z, clampf(-atan2(local_normal.x, local_normal.y), -0.3, 0.3), delta * 6.0)
 
 func _process(delta: float) -> void:
+	_impact_flash = maxf(0.0, _impact_flash - delta)
+	if _body_material:
+		var base := Color("ded9c5").lerp(Color("a98b60"), (100.0 - integrity) / 100.0)
+		_body_material.albedo_color = base.lerp(Color("ffb252"), minf(1.0, _impact_flash * 3.0))
 	if camera == null or not camera.is_inside_tree(): return
 	var target: Vector3 = global_position + Vector3(0, 1.3, 0)
 	var offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * camera_distance

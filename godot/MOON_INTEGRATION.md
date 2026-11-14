@@ -1,5 +1,30 @@
 # Moon environment integration
 
+## NASA campaign hooks (codex/nasa-moon)
+
+The latest Moon branch uses real LRO/LOLA broad elevation; read `data/terrain/README.md` before changing
+terrain claims. Call `world.configure_extent(destination_rules.map_limit)` BEFORE `world.build(sites)`.
+The default terrain patch spans 960 game units; engine movement limits remain authoritative.
+`world.update_checkpoints(checkpoints)` draws only the supplied public checkpoint fields from
+`NASA_CAMPAIGN_HANDOFF.md`, without awarding progress or revealing hidden outcomes.
+
+Connect `rover.impact_reported(impact_speed)` to campaign damage rules; the scene coalesces contacts for one
+second, while the simulation should enforce its agreed longer cooldown. Floor landings use actual pre-contact
+vertical speed; side hits use speed into the collision normal. `rover.set_condition(integrity)` applies visual
+wear and at most 20% speed reduction. The scene never invents or subtracts health.
+
+For an expedition surface, instantiate `scripts/moon_atlas.gd`, connect its `close_requested` signal, then call
+`show_map()`/`hide_map()` while saving/restoring the surface pause state. Picking a point emits
+`survey_selected(latitude, longitude)` for planning only; do not teleport the rover or complete an objective.
+The standalone lunar main already opens this with M. The atlas standalone scene is `scenes/moon_atlas.tscn`.
+Claude owns connecting it to the expedition surface. No Claude files were edited by this branch.
+
+Validation: 92 simulation tests, 74 flight scene checks, the driven Moon/Mars round trip, lunar smoke and
+`tests/integration/nasa_moon_checks.gd` pass. Atlas, impact and lunar smoke checks also pass with the RTX 4050.
+The Windows release export starts cleanly. These checks are not a claim of human playtesting.
+
+## Earlier procedural environment baseline
+
 The Moon presentation update is on `codex/moon-environment`, based on the shared `codex/godot-native` baseline.
 It changes no simulation methods, state schema, project settings or resource truths.
 Claude can continue the native simulation and spaceflight work on separate branches.

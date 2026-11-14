@@ -1,5 +1,12 @@
 # Working together
 
+## Current work: NASA campaign
+
+The combined native baseline is `codex/native-integration`, with Claude's flight fix `762b0f8` and Codex's
+NASA Moon preparation. Read `godot/NASA_CAMPAIGN_HANDOFF.md` for the active split and agreed additions.
+Codex owns Moon elevation/atlas/rover telemetry; Claude owns the new campaign/landing/Mars-weather rules.
+The port and first flight review are complete; do not repeat those tasks. Older milestones below are history.
+
 ## Active native migration
 
 The team chose a standalone Godot 4.7.2 game. The shared native baseline is `codex/godot-native`.

@@ -1,5 +1,9 @@
 # Paste into your friend's Claude Code session
 
+**Historical task, already completed:** PR #3 supplied the native port and PR #4 supplied spaceflight.
+Do not redo the port. The current user-requested task is in [NASA_CAMPAIGN_HANDOFF.md](NASA_CAMPAIGN_HANDOFF.md).
+Start from the latest `codex/native-integration`, which includes the verified flight fixes and NASA Moon work.
+
 We are switching Blue Horizon to a native Godot 4.7.2 game, as the team agreed.
 The active baseline is on `codex/godot-native` in:
 https://github.com/aringhosh13/space-mission-design-game

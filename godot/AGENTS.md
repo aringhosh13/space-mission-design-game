@@ -16,7 +16,9 @@ The scene measures actual collision-resolved displacement; the simulation author
 Never charge a fixed rounded energy amount per rendered or physics frame.
 Keep station position authoritative. Never reveal hidden signal truth through UI or scene nodes.
 State confidence is certainty in a finding, not probability of resource presence.
-All current terrain, resource distribution, confidence and equipment values are fictional.
+Moon broad relief and the global atlas now use measured NASA LRO/LOLA LDEM_16 elevation; read
+data/terrain/README.md for exact provenance, resampling and gameplay distortions. Fine craters, resource
+distribution, confidence and equipment values remain fictional. Mars terrain is still fictional on this branch.
 Do not claim the 83 TypeScript tests cover the GDScript port. Add meaningful native tests.
 Do not spawn subagents automatically or overwrite the other developer's files.
 Do not commit `.godot/`, export templates, downloaded engines or large executable builds.

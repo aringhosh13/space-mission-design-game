@@ -20,6 +20,8 @@ var instrument: OptionButton
 var active_overlay: String = ""
 var environment_label: Label
 var radar: Control
+var impact_label: Label
+var _impact_time: float = 0.0
 
 func _ready() -> void:
 	root = Control.new()
@@ -77,9 +79,11 @@ func _ready() -> void:
 	target_label.size = Vector2(510, 66)
 	target_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	target_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var controls := _label(root, "WASD  DRIVE     RMB  LOOK     E  SCAN     Q  SAMPLE     R  POWER     T  TRANSMIT     B  STATION     F  FINISH     ESC  MENU", 12, Color("c1d7d4"))
+	impact_label = _label(root, "", 16, Color("ffbe79"))
+	impact_label.position = Vector2(410, 485)
+	var controls := _label(root, "WASD DRIVE   RMB LOOK   E SCAN   Q SAMPLE   R POWER   T TRANSMIT   B STATION   M MOON ATLAS   F FINISH   ESC MENU", 12, Color("c1d7d4"))
 	controls.position = Vector2(36, 674)
-	var disclaimer := _label(root, "FICTIONAL GAME VALUES  ·  NASA DATA INTEGRATION PENDING", 10, Color("7f999f"))
+	var disclaimer := _label(root, "NASA LRO / LOLA BROAD TERRAIN  ·  COMPRESSED SCALE  ·  SMALL CRATERS, RESOURCES AND EQUIPMENT VALUES FICTIONAL", 10, Color("7f999f"))
 	disclaimer.position = Vector2(36, 698)
 	# Clickable controls keep all actions accessible without memorizing shortcuts.
 	var bar := HBoxContainer.new()
@@ -240,3 +244,11 @@ func update_environment(presentation: Dictionary, state: Dictionary, heading: fl
 	environment_label.text = "%s  /  %s\nVIEW %03d°   SPEED %.1f m/s   SLOPE %.0f°   BASE %d m" % [
 		presentation.region, presentation.exposure, degrees, speed, presentation.slope, roundi(presentation.base_distance)]
 	radar.update_view(state, heading)
+
+func show_impact(speed: float) -> void:
+	impact_label.text = "HARD IMPACT  %.1f m/s  ·  Slow down near crater rims" % speed
+	_impact_time = 3.0
+
+func _process(delta: float) -> void:
+	_impact_time = maxf(0.0, _impact_time - delta)
+	if _impact_time <= 0.0 and impact_label: impact_label.text = ""

@@ -1,9 +1,15 @@
 extends Node3D
-## Original fictional lunar landscape. Rendering never determines hidden resource outcomes.
+## NASA LOLA broad relief with compressed scale and fictional fine detail; see data/terrain/README.md.
+## Rendering never determines hidden resource outcomes.
 const Contract = preload("res://shared/mission_contract.gd")
 const Landmarks = preload("res://scripts/moon_landmarks.gd")
 const SURFACE_SHADER = preload("res://shaders/moon_surface.gdshader")
 const EARTH_SHADER = preload("res://shaders/earth.gdshader")
+const ELEVATION = preload("res://data/terrain/lola_south_pole.tres")
+var terrain_half_extent: float = 480.0
+var playable_limit: float = 78.0
+var checkpoint_nodes: Dictionary = {}
+var elevation_origin: float = ELEVATION.sample_uv(0.5, 0.5)
 var marker_nodes: Dictionary = {}
 var station: Node3D
 var landmarks: Node3D
@@ -28,9 +34,11 @@ func _init() -> void:
 		if Vector2(point.x, point.z).length() > 16.0: craters.append(point)
 
 func terrain_height(x: float, z: float) -> float:
-	var height: float = sin(x * 0.035) * 1.9 + cos(z * 0.045) * 1.3
-	# Broad hills remain driveable, with finer surface undulation above them.
-	height += terrain_noise.get_noise_2d(x, z) * 0.85
+	var measured: float = ELEVATION.sample_uv(x / (terrain_half_extent * 2.0) + 0.5, z / (terrain_half_extent * 2.0) + 0.5)
+	# Vertical relief is compressed independently to make the educational route driveable.
+	var height: float = (measured - elevation_origin) * 0.003 + 1.0
+	# These small craters and surface bumps are fictional additions, not measured LOLA features.
+	height += terrain_noise.get_noise_2d(x, z) * 0.45
 	for crater in craters:
 		var d: float = Vector2(x - crater.x, z - crater.z).length() / crater.y
 		if d < 1.65:
@@ -40,6 +48,11 @@ func terrain_height(x: float, z: float) -> float:
 	var apron: float = 1.0 - smoothstep(5.0, 17.0, Vector2(x + 5.0, z - 3.0).length())
 	return lerpf(height, 1.0, apron * 0.92)
 
+## Call before build. Claude's destination rules, not this renderer, authorize movement bounds.
+func configure_extent(limit: float) -> void:
+	playable_limit = clampf(limit, 78.0, 2400.0)
+	terrain_half_extent = maxf(480.0, playable_limit + 32.0)
+
 func presentation_for(point: Vector3) -> Dictionary:
 	var region: String = "LANDING FLATS"
 	if point.x < -18.0: region = "WESTERN SHADOW BASIN"
@@ -48,6 +61,7 @@ func presentation_for(point: Vector3) -> Dictionary:
 	var gradient := Vector2(terrain_height(point.x + 0.5, point.z) - terrain_height(point.x - 0.5, point.z),
 		terrain_height(point.x, point.z + 0.5) - terrain_height(point.x, point.z - 0.5))
 	return {"region": region, "exposure": "SHADOW" if point.x < -18.0 else "SUNLIGHT",
+		"terrain_source": "LRO / LOLA · NASA elevation · scale compressed",
 		"slope": rad_to_deg(atan(gradient.length())), "base_distance": Vector2(point.x + 9.0, point.z - 5.0).length()}
 
 func get_landing_anchor() -> Marker3D:
@@ -93,8 +107,8 @@ func build(sites: Array) -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	surface.set_smooth_group(0)
-	var resolution: int = 128
-	var extent: float = 110.0
+	var resolution: int = clampi(ceili(terrain_half_extent / 2.5), 192, 384)
+	var extent: float = terrain_half_extent + 24.0
 	for x_index in range(resolution):
 		for z_index in range(resolution):
 			var x: float = -extent + x_index * extent * 2.0 / resolution
@@ -128,8 +142,8 @@ func build(sites: Array) -> void:
 	var rock_shapes: Array[ArrayMesh] = []
 	for variant in range(6): rock_shapes.append(_rock_shape(variant))
 	for i in range(290):
-		var x: float = rng.randf_range(-94, 94)
-		var z: float = rng.randf_range(-94, 94)
+		var x: float = rng.randf_range(-terrain_half_extent, terrain_half_extent)
+		var z: float = rng.randf_range(-terrain_half_extent, terrain_half_extent)
 		if Vector2(x + 5, z - 3).length() < 15.0: continue
 		var radius: float = rng.randf_range(0.2, 0.9)
 		if i % 18 == 0: radius *= 2.1
@@ -188,16 +202,50 @@ func _build_horizon(finish: Material) -> void:
 			for offset in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 1)]:
 				var angle: float = (float(i) + offset.x) / float(segments) * TAU
 				var fraction: float = (float(band) + offset.y) / 8.0
-				var radius: float = 100.0 + fraction * 100.0
+				var radius: float = terrain_half_extent + fraction * terrain_half_extent
 				var x: float = sin(angle) * radius
 				var z: float = cos(angle) * radius
-				var peaks: float = 10.0 + sin(angle * 7.0) * 4.0 + cos(angle * 13.0) * 2.5 + sin(angle * 29.0)
-				var ridge: float = pow(sin(fraction * PI), 1.6) * peaks
-				corners.append(Vector3(x, lerpf(terrain_height(x, z), -6.0, fraction) + ridge, z))
+				corners.append(Vector3(x, terrain_height(x, z), z))
 			for index in [0, 1, 2, 1, 3, 2]: surface.add_vertex(corners[index])
 	surface.index()
 	surface.generate_normals()
 	_mesh(self, surface.commit(), Vector3.ZERO, finish).name = "DistantCraterRims"
+
+## Read-only campaign presentation hook. Rules and checkpoint rewards belong to the simulation.
+func update_checkpoints(checkpoints: Array) -> void:
+	var keep: Array[String] = []
+	for checkpoint in checkpoints:
+		var id: String = str(checkpoint.id)
+		keep.append(id)
+		if not checkpoint_nodes.has(id):
+			var node := Node3D.new()
+			add_child(node)
+			var ring := TorusMesh.new()
+			ring.inner_radius = 2.5
+			ring.outer_radius = 2.65
+			var mesh := _mesh(node, ring, Vector3(0, 0.2, 0), _material(Color("f3c582"), 0.4))
+			var label := Label3D.new()
+			label.position.y = 5.0
+			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			label.font_size = 32
+			label.pixel_size = 0.013
+			label.outline_size = 7
+			node.add_child(label)
+			checkpoint_nodes[id] = {"node": node, "ring": mesh, "label": label}
+		var entry: Dictionary = checkpoint_nodes[id]
+		entry.node.position = checkpoint.position
+		entry.node.position.y = terrain_height(entry.node.position.x, entry.node.position.z)
+		var done: bool = bool(checkpoint.get("completed", false))
+		var active: bool = bool(checkpoint.get("active", false))
+		var color := Color("a6e5bb") if done else (Color("f3c582") if active else Color("8297aa"))
+		entry.ring.material_override.albedo_color = color
+		entry.ring.material_override.emission = color
+		entry.label.modulate = color
+		entry.label.text = ("✓ " if done else ("▶ " if active else "")) + str(checkpoint.title)
+	for id in checkpoint_nodes.keys():
+		if not str(id) in keep:
+			checkpoint_nodes[id].node.queue_free()
+			checkpoint_nodes.erase(id)
 
 func _build_sky(rng: RandomNumberGenerator) -> void:
 	var star_material := _material(Color("a4b9d0"), 0.7)

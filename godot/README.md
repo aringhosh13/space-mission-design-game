@@ -8,6 +8,10 @@ The Moon environment update adds procedural regolith detail, smoother craters, a
 horizon, a landing module with approach lights, wheel tracks, terrain-following scan pulses and survey radar.
 Read [the Moon/spaceflight integration notes](MOON_INTEGRATION.md) before combining the ship feature.
 
+On `codex/nasa-moon`, the Moon's broad landforms now use NASA LOLA elevation, with an interactive whole-Moon
+atlas (M during the standalone lunar mission). See [data provenance and distortions](data/terrain/README.md).
+The campaign split and exact Claude task are in [NASA_CAMPAIGN_HANDOFF.md](NASA_CAMPAIGN_HANDOFF.md).
+
 ## Open and play
 
 1. Download **Godot 4.7.2 standard** (not .NET) from https://godotengine.org/download/windows/.
@@ -25,6 +29,7 @@ Read [the Moon/spaceflight integration notes](MOON_INTEGRATION.md) before combin
 | R | Recharge; solar requires x >= -18, fuel cells have three uses |
 | T | Transmit onboard evidence |
 | B | Establish a research station at your location |
+| M | Open/close the NASA elevation atlas (standalone lunar mission; pauses driving) |
 | F | Finish the mission and show the report |
 | Escape | Pause, resume or quit via the menu |
 
@@ -49,11 +54,18 @@ The Windows package's `Play Blue Horizon.cmd` opens the expedition via `BlueHori
 This explicit launch option works with official release templates, which disable command-line scene overrides.
 Opening the executable directly still runs the lunar mission.
 
-All scene geometry, resource distributions and equipment balancing values are fictional educational content
-created with AI assistance. The flight expedition uses cited NASA facts for gravity and a derived solar factor;
-see [facts and simplifications](spaceflight/FACTS.md). There are no real NASA terrain or resource measurements.
+The Moon's broad terrain is derived from measured NASA LRO/LOLA elevation, with large scale distortions and
+fictional fine detail. Resource distributions and equipment balancing values remain fictional educational
+content created with AI assistance. The flight expedition uses cited NASA facts for gravity and a derived
+solar factor; see [facts and simplifications](spaceflight/FACTS.md). No real resource quantities are represented.
 No NASA logos or insignia are included.
 Scenery is generated in code; there are no external artwork or texture dependencies.
+
+The enlarged renderer, checkpoint beacons and rover impact telemetry are ready for campaign integration.
+The old mission's ±78 movement bound is unchanged until Claude updates destination rules. The full story,
+manual landing, expanded campaign traversal, authoritative damage/repair and Mars storms are not implemented
+by this Moon branch. A hard impact currently gives an amber rover flash and warning; damage values belong
+to the simulation. The rover's condition presentation retains at least 80% of normal speed.
 
 ## Native contract v1
 
