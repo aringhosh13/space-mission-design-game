@@ -1,5 +1,12 @@
 # Working together
 
+## Active native migration
+
+The team chose a standalone Godot 4.7.2 game. The shared native baseline is `codex/godot-native`.
+Read `godot/README.md` and `godot/CLAUDE_HANDOFF.md`. Claude's next branch is `claude/godot-engine`,
+based on that native baseline. The browser contract and PR order below are historical reference.
+Do not add new TypeScript gameplay features while the native simulation is being ported.
+
 ## First milestone
 
 One mission that goes all the way from design through launch, rover operations and debrief.

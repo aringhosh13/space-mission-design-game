@@ -1,5 +1,7 @@
 # Paste this into Claude Code after the starter is shared
 
+Historical browser handoff. For the active native Godot game, use `godot/CLAUDE_HANDOFF.md` instead.
+
 We are building Blue Horizon in this repo: https://github.com/aringhosh13/space-mission-design-game.
 I own the simulation/game engine; my teammate uses Codex for the frontend and Three.js exploration.
 

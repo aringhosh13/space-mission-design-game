@@ -1,5 +1,11 @@
 # Blue Horizon
 
+**Active direction: standalone Godot game.** Open [`godot/project.godot`](godot/project.godot) in
+Godot 4.7.2 standard edition. See [native controls/setup](godot/README.md) and
+[the new Claude handoff](godot/CLAUDE_HANDOFF.md). The `codex/godot-native` branch is the common native baseline.
+
+The sections below describe the preserved browser prototype used as a simulation reference.
+
 A lunar mission design and exploration game for a four-person Space Apps team.
 
 This is a playable prototype with an independent mission engine, not the finished challenge submission.

@@ -52,7 +52,17 @@ Codex also updated collaboration documentation for contract v2 and the owner's d
 The renderer displays engine-provided findings and confidence; it does not infer the hidden resource outcomes.
 No new scientific measurements, NASA datasets or generated media assets were introduced.
 
-## Before submission
+## Native Godot foundation
+
+The human team chose Godot and a standalone rover exploration game. Codex created the native project,
+GDScript terrain, collision, rover/camera controls, HUD, menu, scanner effect and temporary native simulation
+adapter under `godot/`. Codex wrote and ran native physics/mission integration checks and exported a Windows build.
+The native preview deliberately adapts map scale and power values for continuous driving; all are fictional.
+The TypeScript engine's 83 tests were not ported and do not establish native simulation coverage.
+Claude's next task is the independent GDScript production simulation and its own native tests.
+Generated scenery is code-native geometry and shaders, not NASA imagery. No generated image, audio or video assets are bundled.
+
+## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
 the game. Review the current submission guide for disclosure requirements and enter the team's
