@@ -70,7 +70,17 @@ Codex also improved rover/camera presentation and ran native physics and real-re
 All scene assets are generated from code; no NASA imagery, elevation products or third-party artwork is included.
 The environment is illustrative, and Earth sky scale/position are composed for gameplay.
 
-## Before final submission
+## Claude native simulation port (branch `claude/godot-engine`)
+
+Claude (Claude Opus 5.5, via Claude Code) ported the mission simulation to GDScript in `godot/simulation/`
+(`mission_engine.gd`, `rules.gd`, `design.gd`, `evidence.gd`, `README.md`). The adapter no longer uses the preview.
+Claude also wrote the native tests and runner in `godot/tests/simulation/` and ran them, together with
+Codex's `tests/smoke.gd`, on the official Godot 4.7.2 Linux headless binary. Scenes, HUD, preview rules,
+the shared contract and project settings were not changed.
+All rule values, evidence ranges and false-positive chances are fictional balancing values, not NASA data.
+Differences from the preview are listed in `godot/simulation/README.md`.
+
+## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
 the game. Review the current submission guide for disclosure requirements and enter the team's
