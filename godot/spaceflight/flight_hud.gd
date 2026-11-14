@@ -169,7 +169,7 @@ func place_marker(camera: Camera3D, world_position: Vector3, text: String) -> vo
 	var margin := Vector2(90, 70)
 	var on_screen: bool = not behind and Rect2(margin, viewport_size - margin * 2.0).has_point(screen)
 	if on_screen:
-		marker.text = "◇\n" + text
+		marker.text = "◇\n" + text.get_slice("  ", text.get_slice_count("  ") - 1)
 		marker.position = screen - Vector2(110, 10)
 	else:
 		var direction: Vector2 = (screen - centre)

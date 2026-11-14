@@ -19,7 +19,6 @@ const EXHAUST_VELOCITY: float = 1000.0    # u/s effective exhaust velocity (fict
 const TURN_RATE: float = 1.25             # rad/s at full steering input
 const PITCH_LIMIT: float = 1.3            # rad; the ship cannot flip over the vertical
 const FUEL_LOADS: Dictionary = {"light": 450.0, "standard": 650.0, "full": 850.0}  # kg of propellant
-const MAX_TAKEOFF_MASS: float = 2050.0    # kg, ship + fuel + cargo (fictional structural limit)
 
 static func create(fuel: float, cargo_mass: float, position: Vector3 = Vector3.ZERO, yaw: float = 0.0) -> Dictionary:
 	return {
