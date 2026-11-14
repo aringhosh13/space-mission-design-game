@@ -1,5 +1,6 @@
 import type { MissionAction, MissionState, Position, Site } from '../shared/types';
 import { reviewDesign } from './design';
+import { sampleEvidence, scanEvidence } from './evidence';
 import { RULES } from './rules';
 
 const ACTION_TYPES = new Set(['launch', 'move', 'scan', 'sample', 'recharge', 'transmit', 'deploy', 'finish']);
@@ -138,8 +139,9 @@ export function step(state: MissionState, action: MissionAction): MissionState {
       else if (site.scanned) log(`${site.name} has already been scanned. No new evidence.`);
       else if (consume(RULES.scanEnergy)) {
         site.scanned = true;
+        Object.assign(site, scanEvidence(s.seed, site));
         s.scienceCollected += RULES.scanScience;
-        log(`${site.name}: ${site.kind} evidence recorded. Signal remains unconfirmed.`);
+        log(`${site.name}: ${site.kind} signal is probable (${site.confidence}% confidence). A sample can confirm or rule it out.`);
       }
       break;
     }
@@ -152,8 +154,12 @@ export function step(state: MissionState, action: MissionAction): MissionState {
       else if (site.sampled) log(`${site.name} sample already analysed. No new evidence.`);
       else if (consume(RULES.sampleEnergy)) {
         site.sampled = true;
+        Object.assign(site, sampleEvidence(s.seed, site));
+        // A ruled-out signal is still a result: the sample characterises what produced the signal.
         s.scienceCollected += RULES.sampleScience;
-        log(`${site.name}: sample analysed. Stronger evidence added to onboard storage.`);
+        log(site.finding === 'confirmed'
+          ? `${site.name}: ${site.kind} confirmed by sample analysis (${site.confidence}% confidence).`
+          : `${site.name}: sample rules out ${site.kind} (${site.confidence}% confidence). The analysis still adds evidence about the surface.`);
       }
       break;
     }
@@ -189,7 +195,8 @@ export function step(state: MissionState, action: MissionAction): MissionState {
       else if (!isLit(s.position)) log(`Find a sunlit site east of x = ${RULES.shadeBoundaryX} for the station.`);
       else if (consume(RULES.deployEnergy)) {
         s.outpostDeployed = true;
-        log('Research station deployed with a dedicated solar supply.');
+        s.outpostPosition = { x: s.position.x, z: s.position.z };
+        log(`Research station deployed at X ${s.position.x.toFixed(1)} / Z ${s.position.z.toFixed(1)} with a dedicated solar supply.`);
       }
       break;
     }

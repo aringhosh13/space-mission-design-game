@@ -1,5 +1,6 @@
 import type { MissionConfig, MissionState, Site, SiteKind } from '../shared/types';
 import { batteryCapacity } from './design';
+import { orbitalEvidence } from './evidence';
 import { createRandom, normalizeSeed } from './random';
 import { RULES } from './rules';
 
@@ -30,7 +31,8 @@ export function generateSites(seed: number): Site[] {
     id: t.id, name: t.name, kind: t.kind,
     x: round1(t.x + (random() * 2 - 1) * SITE_JITTER),
     z: round1(t.z + (random() * 2 - 1) * SITE_JITTER),
-    scanned: false, sampled: false
+    scanned: false, sampled: false,
+    ...orbitalEvidence(seed, t.id)
   }));
 }
 
@@ -48,6 +50,7 @@ export function createMission(config: MissionConfig, seed: number): MissionState
     scienceCollected: 0,
     scienceReturned: 0,
     outpostDeployed: false,
+    outpostPosition: null,
     fuelCells: config?.power === 'fuel-cell' ? RULES.fuelCellSupplies : 0,
     sites: generateSites(normalizedSeed),
     log: ['Orbital survey received. Three unconfirmed signals await investigation.']
