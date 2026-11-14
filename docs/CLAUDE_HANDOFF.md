@@ -1,6 +1,6 @@
 # Paste this into Claude Code after the starter is shared
 
-We are building Blue Horizon in this private repo: https://github.com/aringhosh13/space-mission-design-game.
+We are building Blue Horizon in this repo: https://github.com/aringhosh13/space-mission-design-game.
 I own the simulation/game engine; my teammate uses Codex for the frontend and Three.js exploration.
 
 First pull the shared starter and create my `claude/engine` branch. Read AGENTS.md,

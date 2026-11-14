@@ -21,4 +21,4 @@ Two humans use separate AI coding tools. Do not spawn subagents automatically.
 - Keep AI contributions acknowledged in `AI_USAGE.md`; add provenance beside generated assets/data.
 - After the initial shared baseline on `main`, make changes on your own branch. Do not force-push or overwrite another person's work.
 - Run the production build after code changes; write meaningful tests for simulation invariants.
-- Never commit secrets or `node_modules`. Do not make the private repository public without the owner's approval.
+- Never commit secrets or `node_modules`. The owner has chosen a public repository; do not change visibility without permission.

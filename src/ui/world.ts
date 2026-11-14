@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { MissionState } from '../shared/types';
+import { FINDING_COLORS, FINDING_LABELS } from './findings';
 
 export function createWorld(container: HTMLElement, move: (dx: number, dz: number) => void) {
   const scene = new THREE.Scene();
@@ -46,32 +47,64 @@ export function createWorld(container: HTMLElement, move: (dx: number, dz: numbe
   const panel = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.07, 1.1), new THREE.MeshStandardMaterial({ color: 0x255a8b, metalness: 0.4, roughness: 0.5 }));
   panel.position.set(0, 1, 0); station.add(panel); station.visible = false; scene.add(station);
   const markers = new THREE.Group(); scene.add(markers);
+  const labels = new Map<string, { ring: THREE.Mesh; element: HTMLDivElement }>();
+  const stationLabel = document.createElement('div');
+  stationLabel.className = 'world-label station-label';
+  stationLabel.textContent = 'Research station'; stationLabel.hidden = true; container.append(stationLabel);
+  const projectLabel = (element: HTMLElement, x: number, z: number) => {
+    camera.updateMatrixWorld();
+    const projected = new THREE.Vector3(x, 0.9, z).project(camera);
+    element.style.left = `${(projected.x * 0.5 + 0.5) * container.clientWidth}px`;
+    element.style.top = `${(-projected.y * 0.5 + 0.5) * container.clientHeight}px`;
+  };
   const earth = new THREE.Mesh(new THREE.SphereGeometry(2.5, 24, 24), new THREE.MeshStandardMaterial({ color: 0x4c9cbd, emissive: 0x17404e }));
   earth.position.set(-20, 13, -25); scene.add(earth);
   const resize = new ResizeObserver(() => {
     const { width, height } = container.getBoundingClientRect();
     camera.aspect = width / Math.max(height, 1); camera.updateProjectionMatrix(); renderer.setSize(width, height);
+    camera.updateMatrixWorld();
+    for (const { ring, element } of labels.values()) projectLabel(element, ring.position.x, ring.position.z);
+    if (station.visible) projectLabel(stationLabel, station.position.x, station.position.z);
   });
   resize.observe(container);
   const keys = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLElement && /INPUT|SELECT|BUTTON|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.target instanceof HTMLElement && (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.target.isContentEditable)) return;
     const directions: Record<string, [number, number]> = { w: [0, -1], ArrowUp: [0, -1], s: [0, 1], ArrowDown: [0, 1], a: [-1, 0], ArrowLeft: [-1, 0], d: [1, 0], ArrowRight: [1, 0] };
-    const direction = directions[e.key]; if (direction) { e.preventDefault(); move(...direction); }
+    const direction = directions[e.key] ?? directions[e.key.toLowerCase()];
+    if (direction) { e.preventDefault(); move(...direction); }
   };
   window.addEventListener('keydown', keys);
   renderer.setAnimationLoop(() => renderer.render(scene, camera));
   return {
     update(state: MissionState) {
       rover.position.set(state.position.x, 0, state.position.z);
-      if (state.outpostDeployed && !station.visible) { station.position.set(state.position.x + 1.4, 0, state.position.z); station.visible = true; }
-      if (!state.outpostDeployed) station.visible = false;
-      while (markers.children.length) {
-        const child = markers.children[0] as THREE.Mesh;
-        child.geometry.dispose(); (child.material as THREE.Material).dispose(); markers.remove(child);
+      station.visible = state.outpostDeployed && state.outpostPosition !== null;
+      stationLabel.hidden = !station.visible;
+      if (station.visible && state.outpostPosition) {
+        station.position.set(state.outpostPosition.x, 0, state.outpostPosition.z);
+        projectLabel(stationLabel, station.position.x, station.position.z);
+      }
+      const ids = new Set(state.sites.map(site => site.id));
+      for (const [id, { ring, element }] of labels) {
+        if (ids.has(id)) continue;
+        ring.geometry.dispose(); (ring.material as THREE.Material).dispose();
+        markers.remove(ring); element.remove(); labels.delete(id);
       }
       for (const site of state.sites) {
-        const marker = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.04, 8, 32), new THREE.MeshBasicMaterial({ color: site.sampled ? 0xffffff : site.scanned ? 0x76e5bf : 0xe9b86b }));
-        marker.rotation.x = Math.PI / 2; marker.position.set(site.x, 0.12, site.z); markers.add(marker);
+        if (!labels.has(site.id)) {
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.04, 8, 32), new THREE.MeshBasicMaterial());
+          ring.rotation.x = Math.PI / 2;
+          const element = document.createElement('div'); element.className = 'world-label';
+          markers.add(ring); container.append(element); labels.set(site.id, { ring, element });
+        }
+        const { ring, element } = labels.get(site.id)!;
+        ring.position.set(site.x, 0.12, site.z);
+        (ring.material as THREE.MeshBasicMaterial).color.set(FINDING_COLORS[site.finding]);
+        element.textContent = `Signal ${site.id.toUpperCase()} · ${site.confidence}%`;
+        element.dataset.finding = site.finding;
+        element.setAttribute('aria-label', `${site.name}: ${FINDING_LABELS[site.finding]}, ${site.confidence}% confidence in this finding`);
+        projectLabel(element, site.x, site.z);
       }
     }
   };

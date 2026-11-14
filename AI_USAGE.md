@@ -44,6 +44,14 @@ Claude (Claude Opus 5.5, via Claude Code) implemented the contract v2 changes th
 The false-positive chances and confidence ranges in `src/engine/evidence.ts` are fictional balancing
 values, not NASA observations or a validated detection model.
 
+## Codex frontend integration for contract v2
+
+Codex connected the human-approved milestone 2 contract to the interface: finding labels,
+confidence meters, candidate-site distances, a persistent station position and debrief counts.
+Codex also updated collaboration documentation for contract v2 and the owner's decision to keep the repo public.
+The renderer displays engine-provided findings and confidence; it does not infer the hidden resource outcomes.
+No new scientific measurements, NASA datasets or generated media assets were introduced.
+
 ## Before submission
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
