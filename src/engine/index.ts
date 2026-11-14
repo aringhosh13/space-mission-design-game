@@ -8,3 +8,4 @@ import { step } from './step';
 
 export const engine: MissionEngine = { createMission, reviewDesign, step, getReport };
 export { RULES } from './rules';
+export { EVIDENCE } from './evidence';
