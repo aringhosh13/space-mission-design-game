@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## Full-screen fade card for takeoff and landing transitions. play() fades in, holds and emits `covered`
 ## at full black (swap scenes then), then fades out and emits `finished`.
+## cancel() stops a transition at once and still emits `covered` and `finished`, so awaiting code resumes;
+## owners must therefore check whether their transition is still current after every await.
 signal covered
 signal finished
 
@@ -8,6 +10,8 @@ var shade: ColorRect
 var title: Label
 var body: Label
 var playing: bool = false
+var _tween: Tween
+var _covered_sent: bool = false
 
 func _ready() -> void:
 	layer = 20
@@ -38,14 +42,32 @@ func _set_alpha(alpha: float) -> void:
 
 ## hold is in seconds; duration of each fade is `fade`.
 func play(heading: String, lines: Array, hold: float = 1.6, fade: float = 0.45) -> void:
+	if playing: cancel()
 	playing = true
+	_covered_sent = false
 	title.text = heading
 	body.text = "\n".join(PackedStringArray(lines))
-	var tween := create_tween()
-	tween.tween_method(_set_alpha, 0.0, 1.0, fade)
-	tween.tween_callback(func() -> void: covered.emit())
-	tween.tween_interval(hold)
-	tween.tween_method(_set_alpha, 1.0, 0.0, fade)
-	tween.tween_callback(func() -> void:
+	_tween = create_tween()
+	_tween.tween_method(_set_alpha, 0.0, 1.0, fade)
+	_tween.tween_callback(_emit_covered)
+	_tween.tween_interval(hold)
+	_tween.tween_method(_set_alpha, 1.0, 0.0, fade)
+	_tween.tween_callback(func() -> void:
 		playing = false
+		_tween = null
 		finished.emit())
+
+func _emit_covered() -> void:
+	if _covered_sent: return
+	_covered_sent = true
+	covered.emit()
+
+## Stop immediately and clear the screen. Pending awaits on `covered` / `finished` resume.
+func cancel() -> void:
+	if not playing: return
+	if _tween and _tween.is_valid(): _tween.kill()
+	_tween = null
+	playing = false
+	_set_alpha(0.0)
+	_emit_covered()
+	finished.emit()

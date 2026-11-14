@@ -6,6 +6,13 @@ extends Node
 ##
 ## Methods used by tests and integrators: start(config, fuel_load), board(), takeoff(target), land(id),
 ## disembark(), finish(), and the `expedition`, `current`, `ui` and `transition` members.
+##
+## Transition policy: takeoff and landing play an exclusive transition identified by a token. The pause
+## menu stays available during a transition (as on the surface), but finish() and restart invalidate the
+## token and cancel the overlay. Every continuation re-checks its token and the expected expedition phase
+## after each await, so a completed expedition never gets a new flight or surface scene, and a scene
+## installed while the pause menu is open starts paused. Only the scene for the current phase may write
+## back into the expedition state.
 const Expedition = preload("res://simulation/expedition.gd")
 const Ship = preload("res://simulation/ship_flight.gd")
 const Travel = preload("res://simulation/travel.gd")
@@ -26,6 +33,22 @@ var transition: CanvasLayer
 var expedition_seed: int = 42
 var _config: Dictionary = {"battery": "compact", "power": "solar", "instrument": "drill"}
 var _fuel_load: String = "standard"
+var _transition_token: int = 0
+
+func _begin_transition() -> int:
+	_transition_token += 1
+	return _transition_token
+
+func _transition_current(token: int, phase: String) -> bool:
+	return token == _transition_token and expedition.get("phase", "") == phase and is_inside_tree()
+
+func _cancel_transition() -> void:
+	_transition_token += 1
+	if transition: transition.cancel()
+
+## A scene installed while a menu is open starts paused; _resume() releases it.
+func _menu_open() -> bool:
+	return ui.active in ["pause", "report"]
 
 func _ready() -> void:
 	expedition_seed = int(get_tree().get_meta("blue_horizon_expedition_seed", 42))
@@ -80,6 +103,7 @@ func _on_choice(action: String, argument: String) -> void:
 		"finish": finish()
 		"resume": _resume()
 		"restart":
+			_cancel_transition()
 			get_tree().set_meta("blue_horizon_expedition_seed", expedition_seed + 1)
 			get_tree().reload_current_scene()
 		"quit": get_tree().quit()
@@ -107,6 +131,7 @@ func _show_surface() -> void:
 	current.mission_changed.connect(_on_mission_changed)
 	current.board_requested.connect(board)
 	current.menu_requested.connect(_pause)
+	current.paused = _menu_open()
 	add_child(current)
 	phase_changed.emit(expedition.phase)
 
@@ -114,9 +139,10 @@ func _show_space(target: String) -> void:
 	_replace_current(SpaceScene.new())
 	var cores: String = "%d sample core%s aboard" % [expedition.cores.size(), "" if expedition.cores.size() == 1 else "s"]
 	current.setup(expedition.ship, target, cores)
-	current.ship_changed.connect(func(ship: Dictionary) -> void: expedition.ship = ship)
+	current.ship_changed.connect(_on_ship_changed)
 	current.land_requested.connect(land)
 	current.menu_requested.connect(_pause)
+	current.paused = _menu_open()
 	add_child(current)
 	phase_changed.emit(expedition.phase)
 
@@ -125,6 +151,10 @@ func _replace_current(next: Node) -> void:
 		remove_child(current)
 		current.queue_free()
 	current = next
+
+func _on_ship_changed(ship: Dictionary) -> void:
+	if expedition.get("phase", "") != "flight": return
+	expedition.ship = ship
 
 func _on_mission_changed(state: Dictionary) -> void:
 	if expedition.phase != "surface": return
@@ -172,11 +202,13 @@ func takeoff(target: String) -> void:
 	var burned: float = float(expedition.ship.fuel) - float(next.ship.fuel)
 	expedition = next
 	ui.hide_screen()
+	var token: int = _begin_transition()
 	transition.play("ASCENT FROM %s" % str(origin.name).to_upper(), [
 		"Ascent burn: %d kg at %d kg ship mass." % [roundi(burned), roundi(Ship.total_mass(expedition.ship) + burned)],
 		"Surface gravity %.2f m/s² (NASA). Ascent Δv in this game scales with it." % origin.gravity,
 		"Real trip to %s: %s. Here distances and times are compressed." % [Destinations.get_def(target).name, Destinations.get_def(target).real_travel]])
 	await transition.covered
+	if not _transition_current(token, "flight"): return
 	_show_space(target)
 
 func land(id: String) -> void:
@@ -187,6 +219,7 @@ func land(id: String) -> void:
 	if next.phase != "aboard": return
 	expedition = next
 	current.paused = true
+	var token: int = _begin_transition()
 	var def: Dictionary = Destinations.get_def(id)
 	var lines: Array = ["Descent burn: %d kg. Fuel left: %d kg." % [roundi(before_fuel - float(expedition.ship.fuel)), roundi(expedition.ship.fuel)]]
 	if int(expedition.delivered_science) > delivered_before:
@@ -195,10 +228,12 @@ func land(id: String) -> void:
 	lines.append(def.fiction)
 	transition.play("TOUCHDOWN: %s" % str(def.name).to_upper(), lines, 2.2)
 	await transition.covered
+	if not _transition_current(token, "aboard"): return
 	expedition = Expedition.disembark(expedition)
 	_show_surface()
 
 func finish() -> void:
+	_cancel_transition()
 	expedition = Expedition.finish(expedition)
 	if current and "paused" in current: current.paused = true
 	ui.show_report(Expedition.report(expedition))
@@ -214,4 +249,14 @@ func _resume() -> void:
 		_show_aboard()
 		return
 	ui.hide_screen()
-	if current and "paused" in current: current.paused = false
+	if not current or not "paused" in current: return
+	# During a takeoff or landing transition the outgoing scene stays paused; the continuation installs
+	# the next scene unpaused because the menu is now closed.
+	if transition.playing and not _scene_matches_phase(): return
+	current.paused = false
+
+func _scene_matches_phase() -> bool:
+	match expedition.phase:
+		"surface": return current.has_method("try_board")
+		"flight": return current.has_method("try_land")
+	return false

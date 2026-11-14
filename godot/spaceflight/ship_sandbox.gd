@@ -32,9 +32,10 @@ func _ready() -> void:
 	camera.target = rig
 	camera.current = true
 	add_child(camera)
+	rig.apply(ship)
+	camera.snap_now()
 	hud = FlightHUD.new()
 	add_child(hud)
-	rig.apply(ship)
 
 func _buoys() -> void:
 	var material := StandardMaterial3D.new()

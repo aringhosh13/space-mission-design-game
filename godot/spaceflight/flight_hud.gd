@@ -157,28 +157,36 @@ func show_flight(data: Dictionary) -> void:
 	warning_label.text = "\n".join(PackedStringArray(warnings))
 
 ## Place the target marker over its on-screen position, or at the screen edge pointing toward it.
+## Projection is only used when the target is clearly in front of the camera's near plane; targets on,
+## beside or behind the camera plane use their camera-local direction, so unproject_position() is never
+## asked to project a point at zero depth.
 func place_marker(camera: Camera3D, world_position: Vector3, text: String) -> void:
-	if camera == null or not camera.is_inside_tree():
+	if camera == null or not camera.is_inside_tree() or not world_position.is_finite():
+		marker.visible = false
+		return
+	if camera.has_method("is_ready_to_project") and not camera.is_ready_to_project():
 		marker.visible = false
 		return
 	marker.visible = true
 	var viewport_size: Vector2 = root.get_viewport_rect().size
-	var behind: bool = camera.is_position_behind(world_position)
-	var screen: Vector2 = camera.unproject_position(world_position)
 	var centre: Vector2 = viewport_size * 0.5
 	var margin := Vector2(90, 70)
-	var on_screen: bool = not behind and Rect2(margin, viewport_size - margin * 2.0).has_point(screen)
-	if on_screen:
-		marker.text = "◇\n" + text.get_slice("  ", text.get_slice_count("  ") - 1)
-		marker.position = screen - Vector2(110, 10)
-	else:
-		var direction: Vector2 = (screen - centre)
-		if behind: direction = -direction
-		if direction.length() < 0.001: direction = Vector2.DOWN
-		var half: Vector2 = centre - margin
-		var scale: float = minf(half.x / maxf(absf(direction.x), 0.001), half.y / maxf(absf(direction.y), 0.001))
-		var edge: Vector2 = centre + direction * scale
-		var arrows: Array[String] = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]
-		var index: int = int(round(direction.angle() / (PI / 4.0))) % 8
-		marker.text = arrows[(index + 8) % 8] + "\n" + text
-		marker.position = edge - Vector2(110, 10)
+	var local: Vector3 = camera.global_transform.affine_inverse() * world_position
+	var depth: float = -local.z
+	var in_front: bool = depth > maxf(camera.near, 0.05) * 2.0
+	if in_front:
+		var screen: Vector2 = camera.unproject_position(world_position)
+		if Rect2(margin, viewport_size - margin * 2.0).has_point(screen):
+			marker.text = "◇\n" + text.get_slice("  ", text.get_slice_count("  ") - 1)
+			marker.position = screen - Vector2(110, 10)
+			return
+	# Off-screen, beside or behind: point along the camera-local direction (screen y grows downward).
+	var direction := Vector2(local.x, -local.y)
+	if direction.length() < 0.001: direction = Vector2.DOWN
+	var half: Vector2 = centre - margin
+	var scale: float = minf(half.x / maxf(absf(direction.x), 0.001), half.y / maxf(absf(direction.y), 0.001))
+	var edge: Vector2 = centre + direction * scale
+	var arrows: Array[String] = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"]
+	var index: int = int(round(direction.angle() / (PI / 4.0))) % 8
+	marker.text = arrows[(index + 8) % 8] + "\n" + text
+	marker.position = edge - Vector2(110, 10)
