@@ -40,8 +40,9 @@ The campaign's region names, routes, deposits, storms' timing and every tuning v
 ## Derived value
 
 - **Mars solar output ×0.43.** Sunlight intensity falls with the square of distance from the Sun.
-  At ~1.52 times Earth's distance, 1 / 1.52² ≈ 0.43. The game applies it to solar recharging. Dust storms
-  and seasonal changes are not modelled.
+  At ~1.52 times Earth's distance, 1 / 1.52² ≈ 0.43. The game applies it to solar recharging as a clear-sky
+  distance approximation. First Light applies an additional fictional storm multiplier; seasonal changes
+  are not modelled.
 
 ## Not real (fictional balancing values)
 

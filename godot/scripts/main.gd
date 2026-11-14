@@ -19,7 +19,7 @@ var _atlas_previous_pause: bool = false
 
 func _ready() -> void:
 	# Release templates disable command-line scene overrides. Route our own preview flag instead.
-	if OS.get_cmdline_user_args().has("--expedition"):
+	if OS.get_cmdline_user_args().has("--expedition") or OS.get_cmdline_user_args().has("--campaign"):
 		set_process(false)
 		set_process_unhandled_input(false)
 		_open_expedition.call_deferred()
@@ -43,8 +43,10 @@ func _ready() -> void:
 	_sync()
 
 func _open_expedition() -> void:
-	DisplayServer.window_set_title("Blue Horizon · Moon / Mars Expedition")
-	var result: Error = get_tree().change_scene_to_file("res://scenes/spaceflight/expedition_demo.tscn")
+	var campaign: bool = OS.get_cmdline_user_args().has("--campaign")
+	DisplayServer.window_set_title("Blue Horizon · First Light" if campaign else "Blue Horizon · Moon / Mars Expedition")
+	var path: String = "res://scenes/spaceflight/campaign.tscn" if campaign else "res://scenes/spaceflight/expedition_demo.tscn"
+	var result: Error = get_tree().change_scene_to_file(path)
 	if result != OK:
 		push_error("Could not open the expedition: %s" % error_string(result))
 		get_tree().quit(1)

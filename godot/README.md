@@ -1,5 +1,10 @@
 # Blue Horizon — native Godot game
 
+**First Light campaign:** open `scenes/spaceflight/campaign.tscn` and press F6, or use the Windows package's
+`Play First Light.cmd` (`BlueHorizon.exe -- --campaign`). Its twelve objectives include manual landing,
+Moon surveys, Mars sample collection, storms, repairs and checkpoint recovery. Read
+[the campaign play guide](spaceflight/CAMPAIGN.md). The configured F5 main scene remains the Moon sandbox.
+
 This is the active game direction. It opens as a standalone 3D Windows game, using Godot 4.7.2,
 not a browser wrapper. It has rover physics, terrain collisions, a following camera, scanning effects,
 equipment selection, resource investigations, power, research station placement, pause and a debrief.
@@ -61,11 +66,11 @@ solar factor; see [facts and simplifications](spaceflight/FACTS.md). No real res
 No NASA logos or insignia are included.
 Scenery is generated in code; there are no external artwork or texture dependencies.
 
-The enlarged renderer, checkpoint beacons and rover impact telemetry are ready for campaign integration.
-The old mission's ±78 movement bound is unchanged until Claude updates destination rules. The full story,
-manual landing, expanded campaign traversal, authoritative damage/repair and Mars storms are not implemented
-by this Moon branch. A hard impact currently gives an amber rover flash and warning; damage values belong
-to the simulation. The rover's condition presentation retains at least 80% of normal speed.
+Claude's PR #5 connects the enlarged renderer, checkpoint beacons and rover impact telemetry to First Light.
+Campaign driving spans ±150 m on the Moon and ±220 m on Mars. The older standalone Moon mission keeps ±78 m.
+The campaign implements story progress, controlled descent, forgiving damage/repair and Mars storms.
+The atlas is global; detailed driving remains regional. Mars terrain is still procedural and delta-inspired,
+not NASA elevation-derived. This part of the original terrain request remains outstanding.
 
 ## Native contract v1
 

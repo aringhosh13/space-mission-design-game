@@ -2,6 +2,11 @@
 
 ## Current work: NASA campaign
 
+First Light from PR #5 is integrated on `codex/first-light`. The old expedition landing helper now exercises
+the new descent with assist; the separate campaign route exercises manual descent and all twelve objectives.
+The Windows preview has a dedicated campaign launcher. Human playtesting and NASA-derived Mars terrain
+remain outstanding; do not restart the campaign implementation task.
+
 The combined native baseline is `codex/native-integration`, with Claude's flight fix `762b0f8` and Codex's
 NASA Moon preparation. Read `godot/NASA_CAMPAIGN_HANDOFF.md` for the active split and agreed additions.
 Codex owns Moon elevation/atlas/rover telemetry; Claude owns the new campaign/landing/Mars-weather rules.

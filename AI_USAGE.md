@@ -150,6 +150,17 @@ procedural and inspired by delta landforms; no NASA elevation product is used fo
 (storms, damage, landing envelope, assist, regions, checkpoints) is fictional and labelled. No Codex-owned file
 was edited. All visuals are procedural, generated in code; no external or AI-generated media are bundled.
 
+## Codex First Light integration
+
+Codex integrated Claude's PR #5 on the combined NASA Moon baseline, adapted Codex's expedition landing
+test for controlled descent without removing existing assertions, and added the Windows campaign launch
+option in Codex's main script. Codex ran the native checks and packaged a Windows preview with source/engine
+credits. Direct NASA Artemis-science and dust-storm source checks are recorded in FIRST_LIGHT_INTEGRATION.md.
+Codex also added a campaign input-driver variant that refreshes held keyboard input during driving to tolerate
+native-window focus resets. It inherits the original objectives and manual landing checks and changes neither
+gameplay rules nor mission resources. Initial failed GPU driver runs are documented honestly.
+This integration adds no NASA Mars data and does not claim human control/difficulty playtesting.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

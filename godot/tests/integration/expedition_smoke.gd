@@ -113,6 +113,13 @@ func land() -> void:
 	key(KEY_L, true)
 	key(KEY_L, false)
 	await wait_transition()
+	check(game.expedition.phase == "landing", "L must start controlled final descent")
+	key(KEY_T, true)
+	key(KEY_T, false)
+	for i in range(4000):
+		if game.expedition.phase != "landing": break
+		await physics_frame
+	await wait_transition()
 	await frames(45)
 	check(game.expedition.phase == "surface", "Keyboard landing failed")
 
