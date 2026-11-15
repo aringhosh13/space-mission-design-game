@@ -1,10 +1,18 @@
 # Blue Horizon
 
+**Active direction: standalone Godot game.** Open [`godot/project.godot`](godot/project.godot) in
+Godot 4.7.2 standard edition. See [native controls/setup](godot/README.md) and
+[the current NASA campaign handoff](godot/NASA_CAMPAIGN_HANDOFF.md). The latest combined baseline is
+`codex/native-integration`; `codex/godot-native` was the initial native foundation.
+
+The sections below describe the preserved browser prototype used as a simulation reference.
+
 A lunar mission design and exploration game for a four-person Space Apps team.
 
-This is a playable frontend foundation with a temporary preview engine, not the finished challenge submission.
+This is a playable prototype with an independent mission engine, not the finished challenge submission.
 Choose equipment, review cost and launch mass, deploy a rover, investigate three signals,
-manage power, return evidence and establish a research station.
+manage power, return evidence and establish a research station. Signals can be confirmed or ruled out by sampling;
+the interface shows confidence in each finding and keeps the station at its deployment location.
 
 ## Start locally
 
@@ -21,6 +29,7 @@ Solar charging works east of x = -3. Transmit evidence before ending the mission
 
 ```sh
 pnpm build
+pnpm test
 pnpm preview
 ```
 
@@ -35,5 +44,6 @@ Read [the collaboration plan](docs/COLLABORATION.md),
 [Claude's starter prompt](docs/CLAUDE_HANDOFF.md), and [AI attribution](AI_USAGE.md).
 
 The interface contract lives in `src/shared/types.ts`.
-The current engine facade exports temporary preview rules from `src/preview/engine.ts`.
-NASA data, real fuel/orbit constraints, uncertainty modeling and unexpected events are pending.
+The active engine is in `src/engine/`; the old preview fixture remains in `src/preview/engine.ts`.
+The repository is public by the owner's choice. NASA data, real fuel/orbit constraints,
+resource processing and unexpected events are pending. Confidence values are fictional game values.

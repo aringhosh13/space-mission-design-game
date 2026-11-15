@@ -15,14 +15,14 @@ export const previewEngine: MissionEngine = {
   createMission(config, seed) {
     const shift = (Math.abs(seed) % 3) - 1;
     const sites: Site[] = [
-      { id: 'a', name: 'Shackleton signal', x: -6 + shift, z: -5, kind: 'ice', scanned: false, sampled: false },
-      { id: 'b', name: 'Ridge anomaly', x: 6, z: -3 + shift, kind: 'minerals', scanned: false, sampled: false },
-      { id: 'c', name: 'Exposed formation', x: 3 + shift, z: 7, kind: 'geology', scanned: false, sampled: false }
+      { id: 'a', name: 'Shackleton signal', x: -6 + shift, z: -5, kind: 'ice', scanned: false, sampled: false, confidence: 0, finding: 'unconfirmed' },
+      { id: 'b', name: 'Ridge anomaly', x: 6, z: -3 + shift, kind: 'minerals', scanned: false, sampled: false, confidence: 0, finding: 'unconfirmed' },
+      { id: 'c', name: 'Exposed formation', x: 3 + shift, z: 7, kind: 'geology', scanned: false, sampled: false, confidence: 0, finding: 'unconfirmed' }
     ];
     const capacity = EQUIPMENT[config.battery].capacity;
     return { seed, phase: 'planning', config: { ...config }, position: { x: 0, z: 0 },
       energy: capacity, maxEnergy: capacity, fuelCells: 3, turns: 0,
-      scienceCollected: 0, scienceReturned: 0, outpostDeployed: false, sites,
+      scienceCollected: 0, scienceReturned: 0, outpostDeployed: false, outpostPosition: null, sites,
       log: ['Orbital survey received. Three unconfirmed signals await investigation.'] };
   },
   step(original, action) {
@@ -81,7 +81,7 @@ export const previewEngine: MissionEngine = {
   },
   getReport(s) {
     return { score: Math.round(Math.min(100, s.scienceReturned / 120 * 70 + (s.outpostDeployed ? 30 : 0))),
-      returnedScience: s.scienceReturned, investigatedSites: s.sites.filter(p => p.scanned).length,
+      returnedScience: s.scienceReturned, investigatedSites: s.sites.filter(p => p.scanned).length, confirmedSites: 0,
       outpostOperational: s.outpostDeployed,
       feedback: [s.scienceCollected > s.scienceReturned ? 'Some collected evidence was never transmitted.' : 'All collected evidence was returned to Earth.',
         s.outpostDeployed ? 'A powered research station was established.' : 'No research station was established.',
