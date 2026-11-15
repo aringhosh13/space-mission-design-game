@@ -64,8 +64,9 @@ dismisses them). The top panel shows the current objective and its distance.
 | Interplanetary travel takes months | Compressed map distances and travel times |
 
 Terrain: the Moon uses Codex's NASA LRO/LOLA-derived relief (see `godot/data/terrain/README.md` for the product
-and distortions). The Mars region is **procedural and inspired by** delta landforms. No MOLA or HiRISE product is
-used, so it is not data-derived.
+and distortions). Mars broad relief now uses measured MOLA MEGT90N000EB topography around the Jezero region;
+see `data/terrain/MOLA.md`. Fine delta shapes, dunes, craters and the expedition story remain fictional overlays.
+Press P on either surface for a separate regional route-planning lab using physical DEM units, not game scales.
 
 Sources are in `spaceflight/FACTS.md`.
 

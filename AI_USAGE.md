@@ -171,6 +171,18 @@ remain displayed. The minimap uses only public state, the ship position and publ
 Codex rendered isolated Moon/Mars fixtures and checked information retention and actual scan-button dispatch.
 No simulation, damage, science, landing or campaign rules changed.
 
+## Codex mission-planning prototype and annotation fixes
+
+At the user's request to take over all code while Claude is inactive, Codex imported NASA MOLA MEGT90N000EB
+V2.0 topography and added it to Mars broad relief and a new regional traverse-planning lab. Codex wrote the
+grid-search, physical slope/illustrative energy comparison, return/reserve check, planetary route export,
+interactive planning screen and tests. Actual LOLA/MOLA elevation values are measured NASA data, not AI-generated.
+The exact source labels, SHA-256 hashes, resampling and distortions are documented beside the resources.
+The planner is an AI-assisted regional screening prototype, not a NASA-used or flight-validated operations tool.
+Codex also fixed collocated checkpoint labels, screen-space world-label overlap, overflowing menus and flight
+navigation-tag placement. Full objective/site information remains in the compact HUD. No claim is made that
+all possible bugs have been eliminated. Scenery details and numerical tuning remain fictional where labelled.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

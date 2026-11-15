@@ -30,6 +30,15 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	var brand_back := Panel.new()
+	brand_back.position = Vector2(24, 16)
+	brand_back.size = Vector2(390, 66)
+	var brand_style := StyleBoxFlat.new()
+	brand_style.bg_color = Color(0.015, 0.03, 0.05, 0.78)
+	brand_style.set_corner_radius_all(6)
+	brand_back.add_theme_stylebox_override("panel", brand_style)
+	brand_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(brand_back)
 	title = _label(root, "", 22, TEXT, Vector2(32, 20))
 	subtitle = _label(root, "", 12, Color("a4c2c6"), Vector2(34, 54))
 	var panel := Panel.new()
@@ -103,14 +112,14 @@ func _ready() -> void:
 	radar.size = Vector2(170, 185)
 	root.add_child(radar)
 	var actions := HBoxContainer.new()
-	actions.position = Vector2(365, 620)
-	actions.add_theme_constant_override("separation", 8)
+	actions.position = Vector2(350, 620)
+	actions.add_theme_constant_override("separation", 6)
 	root.add_child(actions)
-	for item in [["Scan [E]", "scan"], ["Sample [Q]", "sample"], ["Power [R]", "recharge"], ["Transmit [T]", "transmit"], ["Station [B]", "deploy"], ["Board [G]", "board"]]:
+	for item in [["Scan [E]", "scan"], ["Sample [Q]", "sample"], ["Power [R]", "recharge"], ["Transmit [T]", "transmit"], ["Station [B]", "deploy"], ["Board [G]", "board"], ["Plan [P]", "plan"]]:
 		var button := Button.new()
 		button.text = item[0]
-		button.custom_minimum_size = Vector2(102, 36)
-		button.add_theme_font_size_override("font_size", 13)
+		button.custom_minimum_size = Vector2(91, 36)
+		button.add_theme_font_size_override("font_size", 12)
 		var finish := StyleBoxFlat.new()
 		finish.bg_color = Color(0.05, 0.10, 0.15, 0.94)
 		finish.border_color = Color("58737b")
@@ -124,7 +133,7 @@ func _ready() -> void:
 		button.pressed.connect(func() -> void: action_requested.emit(item[1]))
 		actions.add_child(button)
 		action_buttons.append(button)
-	_label(root, "WASD DRIVE   RMB LOOK   E SCAN   Q SAMPLE   R POWER   T TRANSMIT   B STATION   G BOARD   H REPAIR   M MOON ATLAS   ESC MENU", 12, Color("c1d7d4"), Vector2(34, 674))
+	_label(root, "WASD DRIVE   RMB LOOK   E SCAN   Q SAMPLE   R POWER   T TRANSMIT   B STATION   G BOARD   H REPAIR   M ATLAS   P PLAN   ESC MENU", 12, Color("c1d7d4"), Vector2(34, 674))
 	_label(root, "FICTIONAL GAME VALUES  ·  REAL FIGURES ARE LABELLED (NASA)", 10, Color("7f999f"), Vector2(34, 698))
 
 func _label(parent: Node, text: String, font_size: int, color: Color, at: Vector2) -> Label:

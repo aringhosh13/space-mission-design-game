@@ -2,6 +2,9 @@
 
 Two humans use separate AI coding tools. Do not spawn subagents automatically.
 
+2026-11-15 user override: Claude is inactive; Codex now handles all game code and fixes across the project.
+The ownership split below describes earlier collaboration, not a requirement to wait for Claude's approval.
+
 ## Ownership
 
 - ACTIVE NATIVE GAME: Godot 4.7.2 project under `godot/`. Read `godot/AGENTS.md` and `godot/README.md` before native changes.

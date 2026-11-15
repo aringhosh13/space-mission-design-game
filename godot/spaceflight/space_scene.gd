@@ -141,3 +141,5 @@ func _update_hud() -> void:
 		"target": target, "prompt": prompt, "warnings": warnings,
 	})
 	hud.place_marker(camera, def.space.position, "%s  %d u" % [str(def.name).to_upper(), roundi(g.distance)])
+	# Keep the navigation tag clear of telemetry panels, warnings and controls.
+	hud.marker.position = hud.marker.position.clamp(Vector2(334, 94), Vector2(714, 510))

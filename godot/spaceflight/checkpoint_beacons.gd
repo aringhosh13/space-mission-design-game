@@ -29,6 +29,9 @@ func update_checkpoints(checkpoints: Array) -> void:
 		label.text = ("▶ " if checkpoint.active else ("✓ " if checkpoint.completed else "")) + str(checkpoint.title).to_upper()
 		label.modulate = color
 		label.position.y = 42.0 * beam.scale.y + 2.0
+		label.set_meta("annotation_enabled", bool(checkpoint.active))
+		label.set_meta("annotation_priority", 100 if checkpoint.active else 0)
+		label.visible = bool(checkpoint.active)
 	for id in _nodes.keys():
 		if not seen.has(id):
 			_nodes[id].queue_free()

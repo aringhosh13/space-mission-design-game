@@ -5,6 +5,7 @@ const LunarWorld = preload("res://scripts/lunar_world.gd")
 const Rover = preload("res://scripts/rover.gd")
 const HUD = preload("res://scripts/hud.gd")
 const MoonAtlas = preload("res://scripts/moon_atlas.gd")
+const WorldLabels = preload("res://scripts/world_labels.gd")
 var engine = MissionEngine.new()
 var mission_seed: int = 42
 var config: Dictionary = {"battery": "compact", "power": "solar", "instrument": "drill"}
@@ -123,6 +124,7 @@ func _process(delta: float) -> void:
 	if ui_clock >= 0.1:
 		ui_clock = 0.0
 		_sync()
+		if world and rover: WorldLabels.update(world, rover.camera)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo: return

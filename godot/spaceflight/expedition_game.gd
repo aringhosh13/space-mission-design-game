@@ -30,6 +30,8 @@ const ExpeditionUI = preload("res://spaceflight/expedition_ui.gd")
 const MissionControl = preload("res://spaceflight/mission_control.gd")
 const SpaceSky = preload("res://spaceflight/space_sky.gd")
 const ShipRig = preload("res://spaceflight/ship_rig.gd")
+const TraverseLab = preload("res://scripts/traverse_lab.gd")
+var study_planner: CanvasLayer
 
 signal phase_changed(phase: String)
 
@@ -118,6 +120,12 @@ func _on_config(config: Dictionary, fuel_load: String) -> void:
 
 func _on_choice(action: String, argument: String) -> void:
 	match action:
+		"planner":
+			if study_planner == null:
+				study_planner = TraverseLab.new()
+				study_planner.close_requested.connect(func() -> void: study_planner.close())
+				add_child(study_planner)
+			study_planner.open("moon")
 		"start": start(_config, _fuel_load)
 		"takeoff": takeoff(argument)
 		"disembark": disembark()

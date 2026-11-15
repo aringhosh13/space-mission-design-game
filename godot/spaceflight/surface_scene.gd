@@ -27,6 +27,10 @@ const ShipModel = preload("res://spaceflight/ship_model.gd")
 const SurfaceHUD = preload("res://spaceflight/surface_hud.gd")
 const Beacons = preload("res://spaceflight/checkpoint_beacons.gd")
 const MoonAtlas = preload("res://scripts/moon_atlas.gd")
+const WorldLabels = preload("res://scripts/world_labels.gd")
+const TraverseLab = preload("res://scripts/traverse_lab.gd")
+var planner: CanvasLayer
+var _planner_previous_pause: bool = false
 ## Legacy lunar terrain half-size (Codex's lunar_world.gd before configure_extent exists).
 const LEGACY_LUNAR_EXTENT: float = 107.0
 
@@ -90,12 +94,26 @@ func _ready() -> void:
 	add_child(hud)
 	hud.action_requested.connect(func(action: String) -> void:
 		if paused: return
-		if action == "board": try_board()
+		if action == "plan": toggle_planner()
+		elif action == "board": try_board()
 		else: act(action))
 	_sync()
 
 func board_distance() -> float:
 	return MissionEngine.flat_distance(state.position, def.pad)
+
+func toggle_planner() -> void:
+	if planner == null:
+		planner = TraverseLab.new()
+		planner.close_requested.connect(func() -> void:
+			planner.close()
+			paused = _planner_previous_pause
+			_sync())
+		add_child(planner)
+	_planner_previous_pause = paused
+	paused = true
+	_sync()
+	planner.open(destination_id)
 
 func try_board() -> bool:
 	if state.phase != "surface": return false
@@ -219,6 +237,7 @@ func _process(delta: float) -> void:
 		_ui_clock = 0.0
 		mission_changed.emit(state)
 		_sync()
+		WorldLabels.update(world, rover.camera)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo: return
@@ -230,6 +249,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if actions.has(event.physical_keycode): act(actions[event.physical_keycode])
 	elif event.physical_keycode == KEY_G: try_board()
 	elif event.physical_keycode == KEY_H: repair()
+	elif event.physical_keycode == KEY_P: toggle_planner()
 	elif event.physical_keycode == KEY_M:
 		get_viewport().set_input_as_handled()
 		toggle_atlas()

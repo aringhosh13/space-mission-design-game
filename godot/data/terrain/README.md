@@ -52,8 +52,8 @@ roughly -4196.7 to +6037.4 m. These are sampled/averaged product values, not hig
   The current legacy mission still authorizes movement only within ±78 game units; expanding the simulation
   bounds and placing campaign objectives throughout the larger region belongs to Claude's campaign task.
 - The atlas is a global planning overview, not seamless rover-level traversal of an entire spherical Moon.
-- Mars terrain is still fictional on this branch. Its data import, story, storms and manual landing are
-  assigned separately in `NASA_CAMPAIGN_HANDOFF.md`; this Moon work does not claim those are implemented.
+- Mars broad relief now uses actual MOLA topography; read `MOLA.md` for its separate areoid datum, format and
+  processing. Both raw physical DEM patches feed the regional planning prototype in `ROUTE_PLANNING.md`.
 
 Credit in displays/submissions: **NASA/GSFC/LOLA Science Team; NASA PDS Geosciences Node. Processed,
 resampled and substantially scaled for Blue Horizon.** NASA data use does not imply NASA endorsement.

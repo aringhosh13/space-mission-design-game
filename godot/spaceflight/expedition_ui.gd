@@ -37,7 +37,14 @@ func _ready() -> void:
 	content.position = Vector2(74, 48)
 	content.size = Vector2(700, 630)
 	content.add_theme_constant_override("separation", 10)
-	overlay.add_child(content)
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(60, 24)
+	scroll.size = Vector2(740, 672)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	overlay.add_child(scroll)
+	content.position = Vector2.ZERO
+	content.custom_minimum_size.x = 700
+	scroll.add_child(content)
 	hide_screen()
 
 func _style(background: Color, border: Color) -> StyleBoxFlat:
@@ -101,6 +108,7 @@ func show_planning(campaign: bool = false) -> void:
 	review_label = _label("", 15, Color("b9d7c6"))
 	advice_label = _label("", 14, AMBER)
 	start_button = _button("BEGIN EXPEDITION ON THE MOON" if not campaign else "BEGIN FIRST LIGHT IN LUNAR ORBIT", "start")
+	_button("NASA TRAVERSE PLANNING LAB", "planner")
 	_label("Fictional ship and equipment values · real figures are labelled (NASA) · distances compressed", 11, DIM)
 	_emit_config()
 

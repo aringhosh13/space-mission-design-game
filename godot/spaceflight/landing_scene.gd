@@ -19,6 +19,8 @@ const Landing = preload("res://simulation/landing.gd")
 const LunarWorld = preload("res://scripts/lunar_world.gd")
 const MarsWorld = preload("res://spaceflight/mars_world.gd")
 const ShipModel = preload("res://spaceflight/ship_model.gd")
+const WorldLabels = preload("res://scripts/world_labels.gd")
+var _labels_clock: float = 0.0
 
 signal retry_requested
 signal assist_toggled(on: bool)
@@ -126,6 +128,10 @@ func _place_camera(weight: float) -> void:
 
 func _process(delta: float) -> void:
 	if camera and ship: _place_camera(1.0 - exp(-4.0 * delta))
+	_labels_clock += delta
+	if _labels_clock > 0.1:
+		_labels_clock = 0.0
+		if world and camera: WorldLabels.update(world, camera)
 	if paused or input_override is Dictionary: return
 	var up: bool = Input.is_physical_key_pressed(KEY_W)
 	var down: bool = Input.is_physical_key_pressed(KEY_S)

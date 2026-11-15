@@ -1,5 +1,5 @@
 extends Node3D
-## Aurora Delta: a FICTIONAL Mars landing region (procedural, original geometry; no NASA terrain data).
+## MOLA-derived Jezero-region broad relief with fictional delta detail and compressed gameplay scales.
 ## Same API as Codex's scripts/lunar_world.gd so one surface controller can drive either world:
 ##   build(sites), terrain_height(x, z), update_mission(state), pulse(origin)
 ## Look inspired by public descriptions of Mars (reddish rusted dust, thin dusty sky, a smaller Sun,
@@ -7,6 +7,8 @@ extends Node3D
 const Contract = preload("res://shared/mission_contract.gd")
 const Destinations = preload("res://simulation/destinations.gd")
 const Beacons = preload("res://spaceflight/checkpoint_beacons.gd")
+const ELEVATION = preload("res://data/terrain/mola_jezero.tres")
+var elevation_origin: float = ELEVATION.sample_uv(0.5, 0.5)
 ## Same optional hooks as the lunar world: configure_extent(limit) before build(),
 ## update_checkpoints(list) and set_weather(weather) afterwards.
 
@@ -30,7 +32,9 @@ func configure_extent(limit: float) -> void:
 
 func terrain_height(x: float, z: float) -> float:
 	# Broad delta fan sloping gently toward the north-west, wind-aligned dunes and a few small craters.
-	var height: float = 0.012 * (x - z) + sin(x * 0.028 + 0.6) * 1.1 + cos(z * 0.033) * 0.9
+	var measured: float = ELEVATION.sample_uv(x / 960.0 + 0.5, z / 960.0 + 0.5)
+	var height: float = (measured - elevation_origin) * 0.002
+	height += 0.012 * (x - z) + sin(x * 0.028 + 0.6) * 1.1 + cos(z * 0.033) * 0.9
 	var along: float = x * 0.82 + z * 0.57
 	var dune: float = pow(abs(sin(along * 0.16 + sin(z * 0.05) * 1.5)), 3.0)
 	height += dune * 0.9 * smoothstep(8.0, 30.0, Vector2(x, z).length())

@@ -1,5 +1,11 @@
 # Facts used in spaceflight, and where they come from
 
+2026-11-15 additions: NASA MOLA **MEGT90N000EB V2.0** now supplies Mars broad terrain and planning elevations,
+alongside the existing LOLA Moon product. Exact products, checksums and distortions are in
+`data/terrain/MOLA.md` and `data/terrain/README.md`. The new traverse-lab slope default is informed by
+https://science.nasa.gov/mission/viper/rover-and-instruments/ (15° incline capability). Its power model is
+illustrative, not NASA hardware specifications. See `ROUTE_PLANNING.md` for operational limitations.
+
 Only these values are presented as real. Each appears in game with a "(NASA)" label, and each `facts` entry in
 `simulation/destinations.gd` names its source id. Sources were accessed on 2026-11-14.
 

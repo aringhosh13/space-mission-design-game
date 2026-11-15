@@ -1,6 +1,6 @@
 extends Resource
-## Measured LOLA elevation in metres above the 1737.4 km lunar reference sphere.
-## Processed by tools/import_lola.py; metadata/provenance lives beside the resources.
+## Measured planetary elevation in metres: LOLA above reference sphere, MOLA above areoid.
+## Source-specific metadata and distortions are documented beside the processed resources.
 @export var width: int = 0
 @export var height: int = 0
 @export var elevations: PackedFloat32Array = PackedFloat32Array()

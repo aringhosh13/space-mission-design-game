@@ -242,6 +242,9 @@ func update_checkpoints(checkpoints: Array) -> void:
 		entry.ring.material_override.emission = color
 		entry.label.modulate = color
 		entry.label.text = ("✓ " if done else ("▶ " if active else "")) + str(checkpoint.title)
+		entry.label.set_meta("annotation_enabled", active)
+		entry.label.set_meta("annotation_priority", 100 if active else 0)
+		entry.label.visible = active
 	for id in checkpoint_nodes.keys():
 		if not str(id) in keep:
 			checkpoint_nodes[id].node.queue_free()

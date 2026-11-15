@@ -5,6 +5,11 @@
 Moon surveys, Mars sample collection, storms, repairs and checkpoint recovery. Read
 [the campaign play guide](spaceflight/CAMPAIGN.md). The configured F5 main scene remains the Moon sandbox.
 
+**NASA traverse planning lab:** open it from the campaign planning menu or press P on a surface. It compares
+distance- and energy-weighted return traverses on raw NASA LOLA/MOLA elevation, checks a slope/battery/reserve
+model and exports planetary GeoJSON candidates. Read [scope, sources and limitations](ROUTE_PLANNING.md).
+This is a regional screening prototype, not a flight-validated operations system.
+
 The compact campaign surface HUD restores the circular minimap and clickable scan/sample/power/transmit/
 station/boarding controls. Signal letters match the map, H marks the ship, and a ring marks the active
 checkpoint. Full notes and the same recent mission-log messages remain available in scrollable compact
@@ -74,8 +79,8 @@ Scenery is generated in code; there are no external artwork or texture dependenc
 Claude's PR #5 connects the enlarged renderer, checkpoint beacons and rover impact telemetry to First Light.
 Campaign driving spans ±150 m on the Moon and ±220 m on Mars. The older standalone Moon mission keeps ±78 m.
 The campaign implements story progress, controlled descent, forgiving damage/repair and Mars storms.
-The atlas is global; detailed driving remains regional. Mars terrain is still procedural and delta-inspired,
-not NASA elevation-derived. This part of the original terrain request remains outstanding.
+The atlas is global; detailed driving remains regional. Mars broad relief now uses measured NASA MOLA
+topography; see [MOLA provenance](data/terrain/MOLA.md). Delta details, game routes and sites remain fictional.
 
 ## Native contract v1
 
