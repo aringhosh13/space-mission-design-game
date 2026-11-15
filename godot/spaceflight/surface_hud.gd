@@ -20,6 +20,7 @@ var notes_label: Label
 var flash_label: Label
 var objective_panel: Panel
 var objective_label: Label
+var objective_header: Label
 var _flash_time: float = 0.0
 var radar: Control
 var action_buttons: Array[Button] = []
@@ -81,13 +82,14 @@ func _ready() -> void:
 	root.add_child(prompt_back)
 	objective_panel = Panel.new()
 	objective_panel.position = Vector2(426, 18)
-	objective_panel.size = Vector2(550, 66)
+	objective_panel.size = Vector2(550, 78)
 	objective_panel.add_theme_stylebox_override("panel", column_style)
 	objective_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	objective_panel.visible = false
 	root.add_child(objective_panel)
-	objective_label = _label(objective_panel, "", 13, AMBER, Vector2(14, 8))
-	objective_label.size = Vector2(522, 50)
+	objective_header = _label(objective_panel, "", 12, DIM, Vector2(14, 7))
+	objective_label = _label(objective_panel, "", 20, AMBER, Vector2(14, 27))
+	objective_label.size = Vector2(522, 48)
 	objective_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	site_list = _label(root, "", 12, Color("cbdad9"), Vector2(36, 140))
 	site_list.size = Vector2(266, 210)
@@ -208,10 +210,11 @@ func update_surface(state: Dictionary, info: Dictionary) -> void:
 		text += "%s · %s   %d m\n%s · %d%% certainty\n\n" % [marker_name, site.name, roundi(d), Contract.FINDING_LABELS[site.finding], site.confidence]
 	site_list.text = text
 	var objective: Dictionary = info.get("objective", {})
-	objective_panel.visible = not objective.is_empty()
+	objective_panel.visible = not objective.is_empty() and not info.get("objective_in_mission_control", false)
 	if objective_panel.visible:
 		var distance: String = "  ·  %d m" % roundi(objective.distance) if objective.has("distance") else ""
-		objective_label.text = "%s\n▶ %s%s" % [str(objective.get("header", "")), str(objective.get("title", "")), distance]
+		objective_header.text = str(objective.get("header", ""))
+		objective_label.text = "▶ %s%s" % [str(objective.get("title", "")), distance]
 	var board_distance: float = float(info.get("board_distance", INF))
 	var repair_hint: String = "    [H] Repair (free)" if info.get("can_repair", false) else ""
 	if info.get("in_shelter", false):

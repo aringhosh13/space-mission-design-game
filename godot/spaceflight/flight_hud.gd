@@ -36,9 +36,11 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 	_label(root, "BLUE HORIZON  /  FLIGHT", 22, TEXT, Vector2(28, 18))
-	destination_label = _label(root, "", 14, AMBER, Vector2(30, 50))
+	destination_label = _label(root, "", 12, AMBER, Vector2(30, 50))
+	destination_label.size = Vector2(370, 42)
+	destination_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-	var left := _panel(Vector2(24, 92), Vector2(300, 286))
+	var left := _panel(Vector2(24, 104), Vector2(300, 286))
 	_label(left, "VELOCITY", 11, DIM, Vector2(16, 10))
 	speed_label = _label(left, "0.0 u/s", 30, TEXT, Vector2(16, 24))
 	_label(left, "THRUST", 11, DIM, Vector2(16, 74))
@@ -50,7 +52,7 @@ func _ready() -> void:
 	dv_label = _label(left, "", 14, TEXT, Vector2(16, 160))
 	mass_label = _label(left, "", 12, DIM, Vector2(16, 190))
 
-	var right := _panel(Vector2(936, 92), Vector2(320, 286))
+	var right := _panel(Vector2(936, 104), Vector2(320, 286))
 	target_title = _label(right, "", 18, AMBER, Vector2(16, 10))
 	target_body = _label(right, "", 13, TEXT, Vector2(16, 40))
 	target_body.size = Vector2(290, 240)

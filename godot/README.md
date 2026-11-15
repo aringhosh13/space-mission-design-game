@@ -1,5 +1,11 @@
 # Blue Horizon — native Godot game
 
+**Player controls:** press **F1** or click **Controls** at any time for the activity-specific guide.
+It pauses the game and restores your previous screen when closed. A [printable controls reference](CONTROLS.md)
+is included in the Windows package. New objectives now appear large in the screen centre, hold briefly,
+then fade and move to a compact top reminder. Menus, briefings and instrument results defer announcements
+until you return to gameplay; the reminder retains the objective and its live distance.
+
 **Interactive field missions and audio:** E tunes a scanner, Q operates a core sampler, and B opens a
 power/return assessment before station deployment. Tasks explain their actual result and next step.
 A enables instrument assist; Escape cancels without a new action charge. The original ambient soundtrack,

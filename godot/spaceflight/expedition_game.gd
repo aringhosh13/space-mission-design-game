@@ -109,6 +109,11 @@ func _planning_backdrop() -> void:
 var _backdrop_clock: float = 0.0
 
 func _process(delta: float) -> void:
+	if mission_control:
+		var blocked: bool = _menu_open() or transition.playing or expedition.get("phase", "") == "complete"
+		if current != null and "operation" in current and current.operation != null: blocked = blocked or current.operation.is_open()
+		if study_planner != null: blocked = blocked or study_planner.is_open()
+		mission_control.block_objective(blocked)
 	if current and current.name == "PlanningBackdrop":
 		_backdrop_clock += delta
 		var rig: Node3D = current.get_meta("rig")
@@ -200,7 +205,7 @@ func _objective_info() -> Dictionary:
 	if not expedition.has("campaign"): return {}
 	var o: Dictionary = Campaign.current(expedition)
 	if o.is_empty(): return {"header": "FIRST LIGHT  ·  COMPLETE", "title": "Campaign complete"}
-	var info: Dictionary = {"header": "FIRST LIGHT  ·  %s CHAPTER  ·  %d/%d" % [str(o.chapter).to_upper(),
+	var info: Dictionary = {"id": o.id, "header": "FIRST LIGHT  ·  %s CHAPTER  ·  %d/%d" % [str(o.chapter).to_upper(),
 		expedition.campaign.completed.size(), Campaign.OBJECTIVES.size()], "title": o.title}
 	if expedition.phase == "surface":
 		for beacon in Campaign.checkpoints_for(expedition, expedition.location):
@@ -216,6 +221,7 @@ func _campaign_tick() -> void:
 	var location: String = str(expedition.location)
 	var before: Dictionary = expedition.missions.get(location, {})
 	expedition = Campaign.evaluate(expedition)
+	mission_control.show_objective(_objective_info())
 	if expedition.campaign.completed.size() > _checkpoint_count:
 		_checkpoint_count = expedition.campaign.completed.size()
 		Sound.cue(self, "checkpoint")
@@ -242,7 +248,7 @@ func _surface_info() -> Dictionary:
 		notes = "Home base. Transmit data from here; land here with Mars sample cores to deliver them.\nSolar power works east of x = -18. The ship relays data and repairs the rover when you board."
 	return {"ship_fuel": expedition.ship.fuel, "cores": expedition.cores.size(), "notes": notes,
 		"subtitle": "%s  /  SURFACE GRAVITY %.2f m/s² (NASA)" % [str(def.name).to_upper(), def.gravity],
-		"objective": _objective_info()}
+		"objective": _objective_info(), "objective_in_mission_control": expedition.has("campaign")}
 
 func _show_surface() -> void:
 	_replace_current(SurfaceScene.new())
@@ -301,7 +307,7 @@ func disembark() -> void:
 func _show_space(target: String) -> void:
 	_replace_current(SpaceScene.new())
 	var status: String = "%d sample core%s aboard" % [expedition.cores.size(), "" if expedition.cores.size() == 1 else "s"]
-	if expedition.has("campaign"): status = "Objective: " + str(_objective_info().get("title", "")) + "  ·  " + status
+	# Campaign objective has its own animated reminder; keep this line for destination/cargo information.
 	current.setup(expedition.ship, target, status)
 	current.ship_changed.connect(_on_ship_changed)
 	current.land_requested.connect(land)

@@ -9,7 +9,7 @@ static func update(world: Node3D, camera: Camera3D) -> Array[Rect2]:
 		var pb: int = int(b.get_meta("annotation_priority", 0))
 		return pa > pb if pa != pb else camera.global_position.distance_squared_to(a.global_position) < camera.global_position.distance_squared_to(b.global_position))
 	var viewport: Vector2 = camera.get_viewport().get_visible_rect().size
-	var reserved: Array[Rect2] = [Rect2(0, 0, 1280, 90), Rect2(15, 118, 300, 245), Rect2(0, 360, 330, 250),
+	var reserved: Array[Rect2] = [Rect2(0, 0, 1280, 100), Rect2(365, 106, 560, 64), Rect2(15, 118, 300, 245), Rect2(0, 360, 330, 250),
 		Rect2(1000, 0, 280, 225), Rect2(1040, 460, 230, 210), Rect2(330, 510, 710, 155)]
 	for label: Label3D in labels:
 		var parent: Node3D = label.get_parent() as Node3D

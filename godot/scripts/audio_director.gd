@@ -161,6 +161,8 @@ func build_settings() -> void:
 	panel.add_child(close)
 
 func toggle_settings() -> void:
+	var guide: Node = get_node_or_null("/root/PlayerGuide")
+	if not settings_open and guide != null and guide.is_open: guide.close_guide()
 	settings_open = not settings_open
 	panel.visible = settings_open
 	if settings_open:

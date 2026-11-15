@@ -191,7 +191,7 @@ func _build_hud() -> void:
 	labels.subtitle = _label(root, "Surface gravity %.2f m/s² (NASA). Engine, envelope and allowance are fictional game values." % Landing.gravity(destination_id), 11, Color("a4c2c6"), Vector2(30, 52))
 	labels.readout = _label(panel, "", 16, Color("d8e5dd"), Vector2(16, 12))
 	labels.envelope = _label(panel, "", 12, Color("b8c9b0"), Vector2(16, 236))
-	labels.assist = _label(root, "", 20, Color("8ce9d2"), Vector2(930, 22))
+	labels.assist = _label(root, "", 18, Color("8ce9d2"), Vector2(28, 434))
 	labels.status = _label(root, "", 20, Color("f3c582"), Vector2(240, 560))
 	labels.status.size = Vector2(800, 80)
 	labels.status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

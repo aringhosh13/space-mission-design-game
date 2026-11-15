@@ -227,6 +227,17 @@ were used. All audio is optional and every state has visual feedback. The measur
 credits are retained. Scientific inspiration and exact sources checked on 2026-11-15 are documented in
 godot/INTERACTIVE_MISSIONS.md; instrument thresholds and local operational estimates are fictional.
 
+## Codex player guide and objective presentation
+
+Codex added a global, context-aware F1 controls guide covering rover operation, instruments, spaceflight,
+descent, planning, story and audio. Its printable export uses the same content. The guide preserves pause
+and keyboard focus and can replace the audio panel safely. Codex also implemented the requested large
+centre-screen announcement for each new objective, followed by a fade/move to a persistent top reminder.
+Announcements wait behind briefings, menus, transitions and tool results. Live distances update without
+restarting the animation; interrupted announcements cannot restore stale objective text. Nearby HUD and
+planet labels were repositioned/culled to avoid overlap. No simulation, rewards or mission objectives changed.
+Targeted rendered checks cover guide navigation, pause/audio handoff and objective animation/replacement.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

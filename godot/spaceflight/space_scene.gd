@@ -142,4 +142,14 @@ func _update_hud() -> void:
 	})
 	hud.place_marker(camera, def.space.position, "%s  %d u" % [str(def.name).to_upper(), roundi(g.distance)])
 	# Keep the navigation tag clear of telemetry panels, warnings and controls.
-	hud.marker.position = hud.marker.position.clamp(Vector2(334, 94), Vector2(714, 510))
+	hud.marker.position = hud.marker.position.clamp(Vector2(334, 174), Vector2(714, 510))
+	# Keep projected planet names out of the fixed HUD and the objective reminder.
+	for planet in planets.values():
+		var label: Label3D = planet.label
+		var local: Vector3 = camera.global_transform.affine_inverse() * label.global_position
+		label.visible = -local.z > camera.near * 2
+		if not label.visible: continue
+		var point: Vector2 = camera.unproject_position(label.global_position)
+		var rect := Rect2(point - Vector2(70, 22), Vector2(140, 44))
+		for panel in [Rect2(0, 0, 1280, 102), Rect2(24, 104, 300, 286), Rect2(936, 104, 320, 286), Rect2(365, 106, 620, 54)]:
+			if panel.intersects(rect): label.visible = false
