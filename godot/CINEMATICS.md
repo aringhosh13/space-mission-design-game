@@ -27,6 +27,16 @@ These are native Godot 3D camera sequences, generated in code with captions, let
 procedural ship/rover geometry. They are not recorded NASA mission footage and contain no voiceover,
 external artwork, generated raster assets or pre-rendered video. Hidden cinematic viewports stop rendering.
 
+2026-11-15 visual/collision correction: surface films now instantiate the actual `lunar_world.gd` /
+`mars_world.gd` renderers and `rover.gd` presentation mode, using the same mesh detail, lighting, sky and
+materials as gameplay. The separate simplified terrain/rover were removed. The rover stays stationary
+during camera shots; input, physics and its follow camera are disabled for the presentation instance.
+MSAA smooths edges. Only a candidate presentation shows its route; a results scene no longer invents one.
+
+The completed campaign report also offers a separate, optional **REAL EARTH RETURN: ARTEMIS I** reference.
+See [its exact historical scope and NASA sources](EARTH_RETURN.md). This does not fly the fictional ship
+to Earth or change campaign results. Space/Enter/Escape skips back to the report.
+
 Broad relief comes from the same resampled NASA LOLA/MOLA patches as the planner. The cinematic compresses
 horizontal and vertical scales for illustration; equipment and fine appearance are fictional. The selected
 amber outbound route is mapped into this illustrative scene, not issued as a rover command sequence.
@@ -62,3 +72,10 @@ passes 115 checks with no runtime errors; simulation passes 131 tests / 45,804 a
 release exports and starts in campaign mode. A headless input fixture initially sent successive presses
 within one frame; separating real press/release events across process frames fixed the driver. Cinematic
 keys are also captured before focused controls can consume them.
+
+The subsequent shared-scenery/collision update passes 1,134 prop/geometry checks, 115 scene checks,
+the Moon physics smoke test and the full 44-check campaign route on RTX 4050 OpenGL, with no runtime errors.
+The completed route verifies unlocking the historical explanation without awarding any Earth delivery.
+The hazards fixture now parks outside the solid ship before measuring storm-only effects; its original
+no-wind-push/no-outdoor-drain assertions remain. The boarding driver uses the existing boarding radius.
+These fixture corrections do not remove collision, weather or campaign requirements.

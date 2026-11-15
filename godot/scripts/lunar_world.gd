@@ -3,6 +3,7 @@ extends Node3D
 ## Rendering never determines hidden resource outcomes.
 const Contract = preload("res://shared/mission_contract.gd")
 const Landmarks = preload("res://scripts/moon_landmarks.gd")
+const Solid = preload("res://scripts/solid_geometry.gd")
 const SURFACE_SHADER = preload("res://shaders/moon_surface.gdshader")
 const EARTH_SHADER = preload("res://shaders/earth.gdshader")
 const ELEVATION = preload("res://data/terrain/lola_south_pole.tres")
@@ -148,14 +149,10 @@ func build(sites: Array) -> void:
 		var radius: float = rng.randf_range(0.2, 0.9)
 		if i % 18 == 0: radius *= 2.1
 		var rock := _mesh(self, rock_shapes[i % 6], Vector3(x, terrain_height(x, z) - radius * 0.14, z), rock_material)
+		rock.name = "Rock_%03d" % i
 		rock.rotation.y = rng.randf() * TAU
 		rock.scale = Vector3(radius * rng.randf_range(0.9, 1.6), radius * 0.8, radius)
-		if i % 8 == 0:
-			var rock_body := StaticBody3D.new()
-			var rock_collision := CollisionShape3D.new()
-			rock_collision.shape = rock_shapes[i % 6].create_convex_shape()
-			rock_body.add_child(rock_collision)
-			rock.add_child(rock_body)
+		Solid.attach(rock)
 	_build_horizon(ground_material)
 	_build_sky(rng)
 	landmarks = Landmarks.new()
@@ -299,12 +296,16 @@ func _build_signals(sites: Array) -> void:
 func _build_station() -> void:
 	station = Node3D.new()
 	station.visible = false
+	var equipment := Node3D.new()
+	# Deployment anchor stays authoritative; hardware leaves the operator's rover footprint clear.
+	equipment.position.z = -5.0
+	station.add_child(equipment)
 	var module := BoxMesh.new()
 	module.size = Vector3(2.5, 1.5, 2.2)
-	_mesh(station, module, Vector3(0, 0.85, 0), _material(Color("aaaeb0")))
+	Solid.attach(_mesh(equipment, module, Vector3(0, 0.85, 0), _material(Color("aaaeb0"))))
 	var panel := BoxMesh.new()
 	panel.size = Vector3(5.0, 0.1, 2.0)
-	_mesh(station, panel, Vector3(0, 1.9, 0), _material(Color("183d65")))
+	Solid.attach(_mesh(equipment, panel, Vector3(0, 1.9, 0), _material(Color("183d65"))))
 	var label := Label3D.new()
 	label.text = "RESEARCH STATION"
 	label.position.y = 3.5
@@ -312,6 +313,7 @@ func _build_station() -> void:
 	label.font_size = 28
 	station.add_child(label)
 	add_child(station)
+	Solid.set_enabled(station, false)
 
 func _build_tracks() -> void:
 	track_mesh = MultiMeshInstance3D.new()
@@ -355,6 +357,7 @@ func update_mission(state: Dictionary) -> void:
 		marker.label.visible = distance < 45.0
 		marker.label.text = str(site.name) + "\n" + str(site.confidence) + "% · " + str(Contract.FINDING_LABELS[site.finding])
 	station.visible = state.outpost_deployed and state.outpost_position != null
+	Solid.set_enabled(station, station.visible)
 	if station.visible:
 		station.position = state.outpost_position
 		station.position.y = terrain_height(station.position.x, station.position.z)

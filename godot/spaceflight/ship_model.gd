@@ -4,6 +4,8 @@ extends Node3D
 ## Set landing_gear(true) on the pad and false in flight.
 
 var flame: MeshInstance3D
+const Solid = preload("res://scripts/solid_geometry.gd")
+var ground_collision: Node3D
 var flame_material: StandardMaterial3D
 var retro_flares: Array[MeshInstance3D] = []
 var engine_light: OmniLight3D
@@ -165,6 +167,19 @@ func _ready() -> void:
 		pad.position = corner + Vector3(signf(corner.x) * 0.33, -2.55, 0)
 		legs.add_child(pad)
 	legs.visible = false
+	# Only the parked model is solid. Keep individual convex parts so gaps between legs stay open.
+	ground_collision = Node3D.new()
+	add_child(ground_collision)
+	var solids: Array[MeshInstance3D] = []
+	for child in get_children():
+		if child is MeshInstance3D and child != flame and child not in retro_flares and child not in descent_flames:
+			solids.append(child)
+	for child in legs.get_children():
+		if child is MeshInstance3D: solids.append(child)
+	for part in solids:
+		var body: StaticBody3D = Solid.attach(part)
+		body.reparent(ground_collision, false)
+	Solid.set_enabled(ground_collision, false)
 	set_engine(0.0, 0.0)
 
 func _material(color: Color, metallic: float, roughness: float) -> StandardMaterial3D:
@@ -205,6 +220,7 @@ func set_descent(throttle: float) -> void:
 
 func landing_gear(deployed: bool) -> void:
 	if legs: legs.visible = deployed
+	if ground_collision: Solid.set_enabled(ground_collision, deployed)
 
 func _apply_flicker() -> void:
 	var wobble: float = 1.0 + 0.12 * sin(_flicker * 47.0) + 0.06 * sin(_flicker * 83.0)

@@ -3,6 +3,7 @@ extends CharacterBody3D
 signal attempted_move(proposed: Vector3)
 signal impact_reported(impact_speed: float)
 var driving: bool = false
+var presentation_only: bool = false
 var can_drive: bool = true
 var visual: Node3D
 var wheels: Array[MeshInstance3D] = []
@@ -18,6 +19,7 @@ var condition_speed_factor: float = 1.0
 var _impact_cooldown: float = 0.0
 var _impact_flash: float = 0.0
 var _body_material: StandardMaterial3D
+var _footprint: CollisionShape3D
 
 ## The engine owns integrity; the rover only applies its visual and mobility consequences.
 func set_condition(value: float) -> void:
@@ -34,10 +36,12 @@ func _ready() -> void:
 	floor_snap_length = 1.8
 	floor_max_angle = deg_to_rad(52)
 	var collision := CollisionShape3D.new()
+	_footprint = collision
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(1.7, 0.7, 2.4)
+	# Include wheels and place the bottom at wheel level, rather than burying them in the floor.
+	shape.size = Vector3(2.3, 1.25, 2.6)
 	collision.shape = shape
-	collision.position.y = 0.65
+	collision.position.y = 0.635
 	add_child(collision)
 	visual = Node3D.new()
 	add_child(visual)
@@ -99,6 +103,13 @@ func _ready() -> void:
 	headlight.spot_range = 24.0
 	headlight.spot_angle = 38.0
 	visual.add_child(headlight)
+	if presentation_only:
+		collision_layer = 0
+		collision_mask = 0
+		set_physics_process(false)
+		set_process(false)
+		set_process_unhandled_input(false)
+		return
 	camera = Camera3D.new()
 	camera.far = 500.0
 	camera.fov = 68.0
@@ -139,6 +150,7 @@ func _physics_process(delta: float) -> void:
 		attempted_move.emit(global_position)
 	if direction.length() > 0.1:
 		visual.rotation.y = lerp_angle(visual.rotation.y, atan2(-direction.x, -direction.z), delta * 8.0)
+		_footprint.rotation.y = visual.rotation.y
 		var actual_distance: float = Vector2(global_position.x - before.x, global_position.z - before.z).length()
 		for wheel in wheels: wheel.rotate_y(actual_distance / 0.42)
 	if is_on_floor():

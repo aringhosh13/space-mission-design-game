@@ -7,6 +7,7 @@ extends Node3D
 const Contract = preload("res://shared/mission_contract.gd")
 const Destinations = preload("res://simulation/destinations.gd")
 const Beacons = preload("res://spaceflight/checkpoint_beacons.gd")
+const Solid = preload("res://scripts/solid_geometry.gd")
 const ELEVATION = preload("res://data/terrain/mola_jezero.tres")
 var elevation_origin: float = ELEVATION.sample_uv(0.5, 0.5)
 ## Same optional hooks as the lunar world: configure_extent(limit) before build(),
@@ -144,14 +145,10 @@ func _rocks(rng: RandomNumberGenerator) -> void:
 			shape = box
 		var size: float = rng.randf_range(0.3, 1.4) * (2.2 if i % 23 == 0 else 1.0)
 		var rock := _mesh(self, shape, Vector3(x, terrain_height(x, z) + size * 0.25, z), materials[i % materials.size()])
+		rock.name = "Rock_%03d" % i
 		rock.scale = Vector3(size * rng.randf_range(0.8, 1.8), size * rng.randf_range(0.5, 1.1), size * rng.randf_range(0.8, 1.6))
 		rock.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))
-		if i % 6 == 0:
-			var rock_body := StaticBody3D.new()
-			var rock_collision := CollisionShape3D.new()
-			rock_collision.shape = shape.create_convex_shape()
-			rock_body.add_child(rock_collision)
-			rock.add_child(rock_body)
+		Solid.attach(rock)
 
 ## Layered mesas on the horizon and landforms near each signal template.
 func _landforms(rng: RandomNumberGenerator) -> void:
@@ -168,7 +165,7 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 			slab.bottom_radius = width * (1.0 - layer * 0.12) + 1.5
 			slab.height = rng.randf_range(2.5, 4.5)
 			slab.radial_segments = 7
-			_mesh(self, slab, Vector3(centre.x, y + slab.height * 0.5, centre.z), _material(layers[(i + layer) % layers.size()]))
+			Solid.attach(_mesh(self, slab, Vector3(centre.x, y + slab.height * 0.5, centre.z), _material(layers[(i + layer) % layers.size()])))
 			y += slab.height
 	var rules: Dictionary = Destinations.surface_rules("mars")
 	var at_kind: Dictionary = {}
@@ -182,6 +179,7 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 	var scarp_at := ice + Vector3(-9, 0, 9)
 	var wall := _mesh(self, scarp, Vector3(scarp_at.x, terrain_height(scarp_at.x, scarp_at.z) + 1.5, scarp_at.z), _material(Color("7b4a33")))
 	wall.rotation.y = 0.5
+	Solid.attach(wall)
 	var ice_band := BoxMesh.new()
 	ice_band.size = Vector3(22, 1.2, 0.3)
 	var band := _mesh(wall, ice_band, Vector3(0, 0.4, -1.6), _material(Color("cfe3ee"), 0.35, 0.15))
@@ -194,13 +192,13 @@ func _landforms(rng: RandomNumberGenerator) -> void:
 		terrace.height = 0.7
 		terrace.radial_segments = 9
 		var terrace_at := clay + Vector3(10, 0, 6)
-		_mesh(self, terrace, Vector3(terrace_at.x, terrain_height(terrace_at.x, terrace_at.z) - 0.3 + step * 0.7, terrace_at.z), _material(Color(0.78, 0.66, 0.52).lerp(Color(0.66, 0.5, 0.38), step * 0.25)))
+		Solid.attach(_mesh(self, terrace, Vector3(terrace_at.x, terrain_height(terrace_at.x, terrace_at.z) - 0.3 + step * 0.7, terrace_at.z), _material(Color(0.78, 0.66, 0.52).lerp(Color(0.66, 0.5, 0.38), step * 0.25))))
 	# Near the delta signal: thin stacked sediment layers.
 	for layer in range(7):
 		var sheet := BoxMesh.new()
 		sheet.size = Vector3(18 - layer * 1.6, 0.55, 8 - layer * 0.5)
 		var sheet_at := delta + Vector3(4, 0, -10)
-		_mesh(self, sheet, Vector3(sheet_at.x, terrain_height(sheet_at.x, sheet_at.z) + 0.3 + layer * 0.55, sheet_at.z), _material(layers[layer % layers.size()]))
+		Solid.attach(_mesh(self, sheet, Vector3(sheet_at.x, terrain_height(sheet_at.x, sheet_at.z) + 0.3 + layer * 0.55, sheet_at.z), _material(layers[layer % layers.size()])))
 	# Phobos and Deimos, Mars's two small moons, high in the sky (positions illustrative).
 	var moon_material := _material(Color("8d8379"))
 	for spec in [[Vector3(-120, 140, -260), 6.0], [Vector3(200, 180, -150), 2.5]]:
@@ -242,19 +240,19 @@ func _shelter_and_pad() -> void:
 		roof.bottom_radius = 7.5
 		roof.height = 1.2
 		roof.radial_segments = 16
-		_mesh(shelter, roof, Vector3(0, 6.2, 0), _material(Color("e9e2d4"), 0.6))
+		Solid.attach(_mesh(shelter, roof, Vector3(0, 6.2, 0), _material(Color("e9e2d4"), 0.6)))
 		for k in range(6):
 			var angle: float = TAU * k / 6.0
 			var pillar := CylinderMesh.new()
 			pillar.top_radius = 0.25
 			pillar.bottom_radius = 0.3
 			pillar.height = 6.0
-			_mesh(shelter, pillar, Vector3(cos(angle) * 6.6, 3.0, sin(angle) * 6.6), _material(Color("9aa3ad"), 0.5))
+			Solid.attach(_mesh(shelter, pillar, Vector3(cos(angle) * 6.6, 3.0, sin(angle) * 6.6), _material(Color("9aa3ad"), 0.5)))
 		var floor_pad := CylinderMesh.new()
 		floor_pad.top_radius = 7.0
 		floor_pad.bottom_radius = 7.2
 		floor_pad.height = 0.2
-		_mesh(shelter, floor_pad, Vector3(0, 0.05, 0), _material(Color("6d625a")))
+		Solid.attach(_mesh(shelter, floor_pad, Vector3(0, 0.05, 0), _material(Color("6d625a"))))
 		var lamp := OmniLight3D.new()
 		lamp.position = Vector3(0, 5.2, 0)
 		lamp.light_color = Color("ffd9a0")
@@ -361,12 +359,15 @@ func build(sites: Array) -> void:
 		marker_nodes[site.id] = {"node": node, "ring": marker, "label": label}
 	station = Node3D.new()
 	station.visible = false
+	var equipment := Node3D.new()
+	equipment.position.z = -5.0
+	station.add_child(equipment)
 	var module := BoxMesh.new()
 	module.size = Vector3(2.5, 1.5, 2.2)
-	_mesh(station, module, Vector3(0, 0.85, 0), _material(Color("e4dccd")))
+	Solid.attach(_mesh(equipment, module, Vector3(0, 0.85, 0), _material(Color("e4dccd"))))
 	var panel := BoxMesh.new()
 	panel.size = Vector3(5.0, 0.1, 2.0)
-	_mesh(station, panel, Vector3(0, 1.9, 0), _material(Color("284e89")))
+	Solid.attach(_mesh(equipment, panel, Vector3(0, 1.9, 0), _material(Color("284e89"))))
 	var station_name := Label3D.new()
 	station_name.text = "RESEARCH STATION"
 	station_name.position.y = 3.5
@@ -374,6 +375,7 @@ func build(sites: Array) -> void:
 	station_name.font_size = 32
 	station.add_child(station_name)
 	add_child(station)
+	Solid.set_enabled(station, false)
 	var scan_mesh := TorusMesh.new()
 	scan_mesh.inner_radius = 0.95
 	scan_mesh.outer_radius = 1.0
@@ -392,6 +394,7 @@ func update_mission(state: Dictionary) -> void:
 		marker.label.modulate = color
 		marker.label.text = str(site.name) + "\n" + str(site.confidence) + "% · " + str(Contract.FINDING_LABELS[site.finding])
 	station.visible = state.outpost_deployed and state.outpost_position != null
+	Solid.set_enabled(station, station.visible)
 	if station.visible:
 		station.position = state.outpost_position
 		station.position.y = terrain_height(station.position.x, station.position.z)

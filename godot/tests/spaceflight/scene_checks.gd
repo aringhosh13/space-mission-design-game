@@ -434,8 +434,10 @@ func surface_hazards_and_storm_visuals() -> void:
 	await frames(2)
 	check(surface.state.integrity == worn, "Hazards: no field repairs")
 	var at_pad: Dictionary = surface.state.duplicate(true)
-	at_pad.position = Vector3(0, 0, -7)
+	# Park within the repair radius but outside the newly solid ship footprint.
+	at_pad.position = Vector3(0, 0, -3)
 	surface.apply_state(at_pad)
+	await frames(45) # Let the restored rover settle before measuring weather-only effects.
 	key_event(KEY_H, true)
 	key_event(KEY_H, false)
 	await frames(2)

@@ -123,6 +123,12 @@ func _on_config(config: Dictionary, fuel_load: String) -> void:
 
 func _on_choice(action: String, argument: String) -> void:
 	match action:
+		"earth-reference":
+			if not campaign_mode or not Campaign.is_complete(expedition) or expedition.get("phase", "") != "complete": return
+			if debrief_film == null:
+				debrief_film = Cinematic.new()
+				add_child(debrief_film)
+			debrief_film.play("earth-return")
 		"planner":
 			_pending_campaign_start = false
 			_open_study()

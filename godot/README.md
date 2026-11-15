@@ -18,6 +18,13 @@ the expedition's actual results, including an honest incomplete outcome if ended
 Space, Enter or Escape skips a cinematic; **Replay Briefing** repeats the introduction.
 Read [the cinematic flow and checks](CINEMATICS.md).
 
+Cinematics now share the actual Moon/Mars renderer, rover and ship visuals with gameplay. Rocks, Mars
+scarps/terraces, shelter structure, parked ships and deployed research hardware have solid collision;
+markers and effects remain non-solid. Rover collision includes its wheels. Station hardware is placed
+5 game metres beside its authoritative deployment anchor so deploying it cannot trap the operator.
+After completing the campaign, the report offers a factual, separately labelled
+[Artemis I Earth-return explanation](EARTH_RETURN.md), not a claim about a real Mars round trip.
+
 The compact campaign surface HUD restores the circular minimap and clickable scan/sample/power/transmit/
 station/boarding controls. Signal letters match the map, H marks the ship, and a ring marks the active
 checkpoint. Full notes and the same recent mission-log messages remain available in scrollable compact

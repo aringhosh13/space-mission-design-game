@@ -197,6 +197,21 @@ Cinematic relief uses existing measured NASA LOLA/MOLA data, compressed for illu
 paths, story and equipment visuals are fictional and AI-assisted code; these are not NASA mission footage.
 No external or AI-generated raster, audio or video media are bundled. See godot/CINEMATICS.md for scope.
 
+## Codex shared scenery, solid props and historical return
+
+Codex's subsequent visual/collision update replaces simplified film assets with the actual gameplay worlds
+and rover, adds static collision to missing solid props, bakes nonuniform visual transforms into convex
+shapes and aligns the rover's footprint with its wheels. Station hardware is offset from the authoritative
+deployment anchor to avoid trapping the rover and is non-solid before deployment. Codex added actual-body
+sweep checks and adapted the full-route driver to use the ship's existing boarding radius rather than
+aim through the newly solid ship. No rewards, resources or scientific outcomes are edited to win the tests.
+
+Codex also wrote an optional historical Artemis I explanation, accessible only from a completed campaign
+report. Its procedural capsule, service module, parachutes and ocean are illustrative, not engineering
+replicas. Exact NASA sources were read directly and are documented in godot/EARTH_RETURN.md. No footage,
+logos, raster assets, voiceover or other external media was added. It does not depict the fictional Mars
+ship as a real NASA Earth-return mission or change the campaign state.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

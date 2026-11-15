@@ -4,7 +4,10 @@ signal finished(reason: String)
 const MOON = preload("res://data/terrain/lola_south_pole.tres")
 const MARS = preload("res://data/terrain/mola_jezero.tres")
 const ShipModel = preload("res://spaceflight/ship_model.gd")
-const MOON_SHADER = preload("res://shaders/moon_surface.gdshader")
+const LunarWorld = preload("res://scripts/lunar_world.gd")
+const MarsWorld = preload("res://spaceflight/mars_world.gd")
+const Rover = preload("res://scripts/rover.gd")
+const EarthReturn = preload("res://scripts/earth_return_reference.gd")
 const SHOT_SECONDS: float = 6.0
 var playing: bool = false
 var elapsed: float = 0.0
@@ -20,6 +23,9 @@ var chapter: Label
 var data: Resource
 var route: Node3D
 var rover: Node3D
+var world: Node3D
+var earth_reference: Node3D
+var provenance: Label
 var _shot: int = -1
 var skip_button: Button
 var _previous_focus: WeakRef
@@ -38,6 +44,7 @@ func _ready() -> void:
 	viewport = SubViewport.new()
 	viewport.size = Vector2i(1280, 720)
 	viewport.own_world_3d = true
+	viewport.msaa_3d = Viewport.MSAA_4X
 	container.add_child(viewport)
 	for rect in [Rect2(0, 0, 1280, 76), Rect2(0, 506, 1280, 214)]:
 		var bar := ColorRect.new()
@@ -48,7 +55,7 @@ func _ready() -> void:
 	chapter = label("", Vector2(34, 24), Vector2(950, 35), 20, Color("a3c9d1"))
 	heading = label("", Vector2(42, 524), Vector2(1120, 43), 30, Color("f0e8d4"))
 	caption = label("", Vector2(44, 577), Vector2(1160, 88), 20, Color("d5e3df"))
-	label("Illustrative cinematic · NASA-derived terrain, compressed scales · power model is not flight validated", Vector2(44, 690), Vector2(1100, 22), 11, Color("90a8ad"))
+	provenance = label("Illustrative cinematic · NASA-derived terrain, compressed scales · power model is not flight validated", Vector2(44, 690), Vector2(1100, 22), 11, Color("90a8ad"))
 	var skip := Button.new()
 	skip_button = skip
 	skip.text = "SKIP / CONTINUE  [SPACE]"
@@ -73,7 +80,7 @@ func label(text: String, at: Vector2, extent: Vector2, font_size: int, color: Co
 	return item
 
 func height_at(point: Vector2) -> float:
-	return (data.sample_uv(point.x / 160.0 + 0.5, point.y / 160.0 + 0.5) - data.sample_uv(0.5, 0.5)) * 0.001
+	return world.terrain_height(point.x, point.y)
 
 func material(color: Color, emissive: bool = false) -> StandardMaterial3D:
 	var finish := StandardMaterial3D.new()
@@ -97,70 +104,33 @@ func _build_stage() -> void:
 		stage.queue_free()
 	stage = Node3D.new()
 	viewport.add_child(stage)
-	var environment := WorldEnvironment.new()
-	var settings := Environment.new()
-	settings.background_mode = Environment.BG_COLOR
-	settings.background_color = Color("070b15") if context.get("body", "moon") == "moon" else Color("805b47")
-	settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	settings.ambient_light_color = Color("8e9fac")
-	settings.ambient_light_energy = 0.42
-	environment.environment = settings
-	stage.add_child(environment)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-22, -55, 0)
-	sun.light_color = Color("ffe8bf")
-	sun.light_energy = 1.4
-	sun.shadow_enabled = true
-	stage.add_child(sun)
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for z in range(64):
-		for x in range(64):
-			for corner in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]:
-				var point: Vector2 = (Vector2(x, z) + corner) / 64.0 * 160.0 - Vector2.ONE * 80.0
-				surface.set_uv(point * 0.2)
-				surface.add_vertex(Vector3(point.x, height_at(point), point.y))
-	surface.index()
-	surface.generate_normals()
-	surface.generate_tangents()
-	var ground: Material = material(Color("ae714e"))
-	if context.get("body", "moon") == "moon":
-		var shader_finish := ShaderMaterial.new()
-		shader_finish.shader = MOON_SHADER
-		ground = shader_finish
-	mesh(stage, surface.commit(), Vector3.ZERO, ground)
-	rover = Node3D.new()
+	if kind == "earth-return":
+		earth_reference = EarthReturn.new()
+		stage.add_child(earth_reference)
+		camera = earth_reference.camera
+		return
+	world = MarsWorld.new() if context.get("body", "moon") == "mars" else LunarWorld.new()
+	world.configure_extent(220.0 if context.get("body", "moon") == "mars" else 150.0)
+	stage.add_child(world)
+	world.build([])
+	# Cinematic scenery is the same renderer, geometry, shader, light and sky as gameplay.
+	for node in world.find_children("*", "Label3D", true, false): node.visible = false
+	rover = Rover.new()
+	rover.presentation_only = true
 	stage.add_child(rover)
-	var body := BoxMesh.new()
-	body.size = Vector3(2.5, 0.8, 3.5)
-	mesh(rover, body, Vector3(0, 1.15, 0), material(Color("ddd9c5")))
-	var solar := BoxMesh.new()
-	solar.size = Vector3(3.0, 0.08, 2.2)
-	mesh(rover, solar, Vector3(0, 1.65, 0.3), material(Color("285f88")))
-	for x in [-1.45, 1.45]:
-		for z in [-1.15, 0.0, 1.15]:
-			var wheel := CylinderMesh.new()
-			wheel.top_radius = 0.6
-			wheel.bottom_radius = 0.6
-			wheel.height = 0.35
-			mesh(rover, wheel, Vector3(x, 0.6, z), material(Color("18212b"))).rotation.z = PI * 0.5
-	var mast := CylinderMesh.new()
-	mast.top_radius = 0.06
-	mast.bottom_radius = 0.06
-	mast.height = 2.0
-	mesh(rover, mast, Vector3(0, 2.5, -1), material(Color("cbd3d1")))
+	rover.position = Vector3(0, height_at(Vector2.ZERO), 0)
 	var ship: Node3D = ShipModel.new()
 	stage.add_child(ship)
 	ship.landing_gear(true)
-	ship.position = Vector3(-20, height_at(Vector2(-20, 9)) + 2.62, 9)
-	ship.rotation.y = 0.7
+	ship.position = Vector3(0, height_at(Vector2(0, -11)) + 2.62, -11)
+	ship.rotation.y = 0.6
 	route = Node3D.new()
 	stage.add_child(route)
 	var points: Array = context.get("plan", {}).get("outbound", [])
 	if points.is_empty(): points = [Vector2(0.5, 0.5), Vector2(0.6, 0.42), Vector2(0.78, 0.32)]
 	var previous := Vector3.ZERO
 	for i in range(points.size()):
-		var point: Vector2 = points[i] * 160.0 - Vector2.ONE * 80
+		var point: Vector2 = points[i] * 960.0 - Vector2.ONE * 480
 		var here := Vector3(point.x, height_at(point) + 0.18, point.y)
 		if i > 0:
 			var segment := CylinderMesh.new()
@@ -181,7 +151,7 @@ func _build_stage() -> void:
 	mesh(stage, marker, previous + Vector3(0, 4.5, 0), material(Color("8ce6d3"), true))
 	camera = Camera3D.new()
 	camera.current = true
-	camera.far = 400
+	camera.far = 1500
 	stage.add_child(camera)
 
 func play(mode: String, payload: Dictionary = {}) -> void:
@@ -193,6 +163,7 @@ func play(mode: String, payload: Dictionary = {}) -> void:
 	elapsed = 0.0
 	_shot = -1
 	playing = true
+	provenance.text = "Historical reference: Artemis I · 11 December 2022 · NASA mission reports · geometry and timing illustrated" if mode == "earth-return" else "In-engine scene · NASA-derived terrain at game scale · planning model is illustrative"
 	_build_stage()
 	var focus: Control = get_viewport().gui_get_focus_owner()
 	_previous_focus = weakref(focus) if focus != null and not panel.is_ancestor_of(focus) else null
@@ -225,21 +196,35 @@ func _process(delta: float) -> void:
 	if shot != _shot:
 		_shot = shot
 		_set_caption(shot)
-	var target := Vector3(0, 1, 0)
+	if kind == "earth-return":
+		earth_reference.animate(shot, t)
+		return
+	# The rover holds still: a camera tour must not suggest collision-free scripted driving.
+	var ground: float = height_at(Vector2.ZERO)
+	var target := Vector3(0, ground + 1.0, 0)
 	var at: Vector3
-	if shot == 0: at = Vector3(sin(t * 0.65 + 0.4) * 19, 7 + t * 3, cos(t * 0.65 + 0.4) * 19)
-	elif shot == 1: at = Vector3(-24 + t * 9, 9, 22 - t * 7)
+	var ease: float = smoothstep(0, 1, t)
+	if shot == 0:
+		at = Vector3(11 - ease * 4, ground + 4.5, 12 + ease * 3)
+	elif shot == 1:
+		target = Vector3(0, ground + 1.2, -5)
+		at = Vector3(17 - ease * 3, ground + 6, -3 - ease * 4)
 	else:
-		target = Vector3(12, 0, -10)
-		at = Vector3(30 - t * 12, 60 + t * 20, 38)
+		target = Vector3(12, height_at(Vector2(12, -10)), -10)
+		at = Vector3(45 - ease * 10, ground + 40 + ease * 12, 40)
+	# Keep the tracking camera above local relief on both worlds.
+	at.y = maxf(at.y, height_at(Vector2(at.x, at.z)) + 2.5)
 	camera.position = at
 	camera.look_at(target, Vector3.UP)
-	camera.fov = 55 if shot < 2 else 62
-	route.visible = kind != "problem" or shot == 2
-	var rover_x: float = t * 3.0 if kind == "solution" else 0.0
-	rover.position = Vector3(rover_x, height_at(Vector2(rover_x, 0)), 0)
+	camera.fov = 58
+	route.visible = kind == "solution"  # Do not invent an unearned route in the results scene.
 
 func _set_caption(shot: int) -> void:
+	if kind == "earth-return":
+		chapter.text = "REAL MISSION REFERENCE / ARTEMIS I (2022) / %d OF 3" % (shot + 1)
+		heading.text = EarthReturn.TITLES[shot]
+		caption.text = EarthReturn.CAPTIONS[shot]
+		return
 	chapter.text = "BLUE HORIZON / %s / %d OF 3" % ["MISSION BRIEFING" if kind == "problem" else ("PLAN PRESENTATION" if kind == "solution" else "MISSION DEBRIEF"), shot + 1]
 	if kind == "problem":
 		heading.text = ["A DISCOVERY IS ONLY HALF THE JOURNEY", "THE ROVER MUST ALSO COME HOME", "YOUR TASK: DESIGN THE RETURN TRAVERSE"][shot]

@@ -1,6 +1,7 @@
 extends Node3D
 ## Original procedural landing equipment. Scenery only; it never changes mission rules.
 var landing_module: Node3D
+const Solid = preload("res://scripts/solid_geometry.gd")
 
 func material(color: Color, metal: float = 0.0) -> StandardMaterial3D:
 	var value := StandardMaterial3D.new()
@@ -15,6 +16,7 @@ func shape(parent: Node3D, mesh: Mesh, at: Vector3, finish: Material) -> MeshIns
 	instance.position = at
 	instance.material_override = finish
 	parent.add_child(instance)
+	Solid.attach(instance)
 	return instance
 
 func beam(parent: Node3D, from: Vector3, to: Vector3, radius: float, finish: Material) -> void:
@@ -27,6 +29,10 @@ func beam(parent: Node3D, from: Vector3, to: Vector3, radius: float, finish: Mat
 	var right: Vector3 = Vector3.FORWARD.cross(direction).normalized()
 	if right.length() < 0.1: right = Vector3.RIGHT
 	instance.basis = Basis(right, direction, right.cross(direction).normalized())
+	# Beam orientation is assigned after creation; rebuild its baked collider.
+	var previous: StaticBody3D = instance.get_meta("solid_body").get_ref()
+	previous.free()
+	Solid.attach(instance)
 
 func build(world: Node3D) -> void:
 	var gold := material(Color("9d7844"), 0.62)

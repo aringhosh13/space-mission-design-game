@@ -68,7 +68,7 @@ func _run() -> void:
 	var lab: Node = game.study_planner
 	var film: Node = lab.film
 	var position: Vector3 = film.camera.position
-	await frames(30)
+	await frames(60) # The shared-scene camera now eases gently into the shot.
 	check(film.camera.position.distance_to(position) > 0.1, "Cinematic must animate a real 3D camera")
 	check(game.expedition.is_empty(), "Briefing must not spend mission resources")
 	await capture("01-problem")
@@ -101,6 +101,20 @@ func _run() -> void:
 	check(game.ui.active == "report" and game.expedition.phase == "complete", "Skipping results reveals the report and keeps mission complete")
 	game.finish()
 	check(not game.debrief_film.playing, "Repeated finish must not replay the cinematic")
+	game.ui.choice.emit("earth-reference", "")
+	check(not game.debrief_film.playing, "An incomplete campaign cannot unlock a fictional Earth-return claim")
+	var film_reference: Node = game.debrief_film
+	film_reference.play("earth-return") # Presentation fixture; does not mark the mission complete.
+	for shot in range(3):
+		film_reference.elapsed = 6.0 * shot + 0.5
+		film_reference._process(0)
+		check(film_reference.chapter.text.contains("ARTEMIS I (2022)"), "Every historical shot names the actual reference mission")
+		await capture("04-earth-reference-" + str(shot))
+	await skip()
+	check(not film_reference.playing and game.expedition.phase == "complete", "Historical film can be skipped without changing mission state")
+	film_reference.play("problem", {"body": "mars"})
+	await capture("05-mars-game-scenery")
+	await skip()
 	game.queue_free()
 	await frames(3)
 	OS.remove_logger(catcher)

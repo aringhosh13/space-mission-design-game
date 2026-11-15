@@ -157,7 +157,9 @@ func objective() -> String:
 	return str(game.expedition.campaign.objective)
 
 func board_and_takeoff(target: String) -> bool:
-	if not await drive_to(Destinations.get_def(game.expedition.location).pad + Vector3(0, 0, 5), 3.0): return false
+	var destination: Dictionary = Destinations.get_def(game.expedition.location)
+	# Reach the actual boarding radius, rather than aiming through the now-solid parked ship.
+	if not await drive_to(destination.pad, float(destination.boarding_range) - 0.5): return false
 	await tap(KEY_G)
 	check(game.expedition.phase == "aboard", "Boarding with G failed on " + str(game.expedition.location))
 	if game.expedition.phase != "aboard": return false
@@ -241,6 +243,11 @@ func _run() -> void:
 						game.debrief_film._process(0)
 						check(not game.debrief_film.playing and game.ui.active == "report", "Closing cinematic naturally completes into the report")
 						check(Expedition.report(game.expedition) == report, "Closing presentation cannot change mission results")
+						game.ui.choice.emit("earth-reference", "")
+						check(game.debrief_film.playing and game.debrief_film.kind == "earth-return", "Completed campaign unlocks the historical Earth-return explanation")
+						check(game.debrief_film.chapter.text.contains("ARTEMIS I (2022)"), "Earth-return explanation identifies the real reference mission")
+						game.debrief_film.stop("skipped")
+						check(Expedition.report(game.expedition) == report, "Historical reference does not award a fictional Earth delivery")
 	game.queue_free()
 	await frames(2)
 	OS.remove_logger(catcher)

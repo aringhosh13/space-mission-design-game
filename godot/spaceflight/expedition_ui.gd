@@ -177,5 +177,7 @@ func show_report(report: Dictionary, campaign: Dictionary = {}) -> void:
 		_label("   ".join(PackedStringArray(campaign.objectives)), 13, Color("b9d7c6"))
 		if int(campaign.recoveries) > 0: _label("Checkpoint recoveries used: %d (no penalty)." % campaign.recoveries, 13, DIM)
 	for line in report.feedback: _label("• " + str(line), 14, SOFT)
+	if bool(campaign.get("complete", false)):
+		_button("REAL EARTH RETURN: ARTEMIS I (historical explanation)", "earth-reference")
 	_button("PLAN ANOTHER EXPEDITION", "restart")
 	_button("QUIT", "quit")
