@@ -1,4 +1,5 @@
 extends Node3D
+const Identity = preload("res://scripts/mission_identity.gd")
 ## Procedural spaceship visual (original geometry generated in code; no external assets).
 ## Faces -Z. Call set_engine(throttle, braking) every frame to drive the engine effects.
 ## Set landing_gear(true) on the pad and false in flight.
@@ -45,6 +46,8 @@ func _ready() -> void:
 		wing.size = Vector3(3.4, 0.16, 2.2)
 		var w := _mesh(wing, Vector3(side * 2.3, -0.25, 1.2), hull)
 		w.rotation = Vector3(0, side * 0.35, side * -0.08)
+		if side > 0:
+			Identity.patch(w, Vector3(0, 0.085, 0), Vector3(-PI / 2.0, 0, 0), 1.15)
 		var tip := BoxMesh.new()
 		tip.size = Vector3(0.22, 0.9, 1.4)
 		_mesh(tip, Vector3(side * 3.9, 0.1, 1.9), accent)

@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const Identity = preload("res://scripts/mission_identity.gd")
 ## Frontend-owned physics/camera. The engine adapter alone authorizes travel and charges power.
 signal attempted_move(proposed: Vector3)
 signal impact_reported(impact_speed: float)
@@ -52,6 +53,7 @@ func _ready() -> void:
 	var chassis := BoxMesh.new()
 	chassis.size = Vector3(1.6, 0.55, 2.4)
 	_add_mesh(chassis, Vector3(0, 0.8, 0), body_material)
+	Identity.patch(visual, Vector3(0, 0.8, -1.205), Vector3(0, PI, 0), 0.44)
 	var dark := StandardMaterial3D.new()
 	dark.albedo_color = Color("202737")
 	var blue := StandardMaterial3D.new()

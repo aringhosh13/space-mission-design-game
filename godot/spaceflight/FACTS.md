@@ -1,5 +1,11 @@
 # Facts used in spaceflight, and where they come from
 
+2026-11-15 science-reference addition: F2 opens three credited NASA image explanations (polar ice, Jezero
+delta sedimentary structures and the 2018 dust event), the terrain data catalogue and project/AI credits.
+These images are educational references, not additional heightmaps or resource-placement observations.
+Exact image URLs and checksums are in `assets/nasa/README.md` and `manifest.json`; see `NASA_SCIENCE.md`.
+The dust page distinguishes solar-powered Opportunity from radioisotope-powered Curiosity.
+
 2026-11-15 additions: NASA MOLA **MEGT90N000EB V2.0** now supplies Mars broad terrain and planning elevations,
 alongside the existing LOLA Moon product. Exact products, checksums and distortions are in
 `data/terrain/MOLA.md` and `data/terrain/README.md`. The new traverse-lab slope default is informed by

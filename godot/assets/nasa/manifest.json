@@ -1,0 +1,41 @@
+[
+  {
+    "file": "moon-polar-ice.jpg",
+    "title": "Ice Confirmed at the Moon’s Poles",
+    "credit": "NASA",
+    "source_page": "https://www.jpl.nasa.gov/news/ice-confirmed-at-the-moons-poles/",
+    "asset_url": "https://d2pn8kiwq2w21t.cloudfront.net/images/imagesmoon20180820elphic20180820-16.width-1280.jpg",
+    "retrieved": "2026-11-15",
+    "sha256": "598adb62bcb7e15f90862d10f81938abaa91e54ab03cf44c40c2bed02074c212",
+    "bytes": 182107,
+    "changes": "None. Published NASA-hosted file; displayed with aspect ratio preserved.",
+    "ai_generated": false,
+    "role": "Read-only educational illustration; not an elevation dataset."
+  },
+  {
+    "file": "jezero-delta.jpg",
+    "title": "Jezero Crater’s Delta Scarp — annotated PIA24683",
+    "credit": "NASA/JPL-Caltech/LANL/CNES/CNRS/ASU/MSSS",
+    "source_page": "https://www.nasa.gov/missions/my-favorite-martian-image-jezero-craters-delta-scarp/",
+    "asset_url": "https://www.nasa.gov/wp-content/uploads/2021/06/1-pia24683a-annotated-1041.jpg",
+    "retrieved": "2026-11-15",
+    "sha256": "4641dec14853a3024132a2007b8cd070632a0568a95884930ad4bb3abec26d37",
+    "bytes": 107696,
+    "changes": "None. Published NASA-hosted file; displayed with aspect ratio preserved.",
+    "ai_generated": false,
+    "role": "Read-only educational illustration; not an elevation dataset."
+  },
+  {
+    "file": "curiosity-dust-comparison.jpg",
+    "title": "Curiosity Duluth drill-site dust comparison — PIA22330",
+    "credit": "NASA/JPL-Caltech/MSSS",
+    "source_page": "https://astrobiology.nasa.gov/news/forecasting-martian-dust-storms/",
+    "asset_url": "https://astrobiology.nasa.gov/uploads/filer_public_thumbnails/filer_public/9e/5a/9e5a5cff-71db-4a7f-827b-c7c65c37b36e/21928_pia22330-web.jpg__1240x510_q85_subject_location-800%2C366_subsampling-2.jpg",
+    "retrieved": "2026-11-15",
+    "sha256": "0238a40619c2683841d26ea3b05a61ad38e12e09b34a11363ae277bbdbc12e54",
+    "bytes": 127241,
+    "changes": "None. Published NASA-hosted file; displayed with aspect ratio preserved.",
+    "ai_generated": false,
+    "role": "Read-only educational illustration; not an elevation dataset."
+  }
+]

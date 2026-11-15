@@ -161,6 +161,8 @@ func build_settings() -> void:
 	panel.add_child(close)
 
 func toggle_settings() -> void:
+	var archive: Node = get_node_or_null("/root/ScienceArchive")
+	if not settings_open and archive != null and archive.is_open: archive.close_archive()
 	var guide: Node = get_node_or_null("/root/PlayerGuide")
 	if not settings_open and guide != null and guide.is_open: guide.close_guide()
 	settings_open = not settings_open

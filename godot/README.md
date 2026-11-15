@@ -1,5 +1,12 @@
 # Blue Horizon — native Godot game
 
+**Science behind First Light:** press **F2** or click **Science** anywhere for an offline reference with
+credited NASA-published lunar ice, Jezero delta and Mars dust images, plus the exact LOLA/MOLA elevation
+sources and model limitations. Each science page connects an observation to a mission decision and
+identifies fictional rules. It pauses safely and returns to the same activity; controls/audio can replace
+it without leaving the game paused. Instrument results also link to the reference. Read [sources and scope](NASA_SCIENCE.md).
+The original Blue Horizon badge appears in planning and on the rover/ship; it is not a NASA identifier.
+
 **Player controls:** press **F1** or click **Controls** at any time for the activity-specific guide.
 It pauses the game and restores your previous screen when closed. A [printable controls reference](CONTROLS.md)
 is included in the Windows package. New objectives now appear large in the screen centre, hold briefly,
@@ -100,8 +107,8 @@ The Moon's broad terrain is derived from measured NASA LRO/LOLA elevation, with 
 fictional fine detail. Resource distributions and equipment balancing values remain fictional educational
 content created with AI assistance. The flight expedition uses cited NASA facts for gravity and a derived
 solar factor; see [facts and simplifications](spaceflight/FACTS.md). No real resource quantities are represented.
-No NASA logos or insignia are included.
-Scenery is generated in code; there are no external artwork or texture dependencies.
+No NASA logos or insignia are included. Scenery is generated in code. The offline science reference now
+bundles three NASA-published images; their source URLs, credits and checksums are in [the image manifest](assets/nasa/README.md).
 
 Claude's PR #5 connects the enlarged renderer, checkpoint beacons and rover impact telemetry to First Light.
 Campaign driving spans ±150 m on the Moon and ±220 m on Mars. The older standalone Moon mission keeps ±78 m.

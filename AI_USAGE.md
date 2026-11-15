@@ -238,6 +238,24 @@ restarting the animation; interrupted announcements cannot restore stale objecti
 planet labels were repositioned/culled to avoid overlap. No simulation, rewards or mission objectives changed.
 Targeted rendered checks cover guide navigation, pause/audio handoff and objective animation/replacement.
 
+## Codex original identity and NASA science reference
+
+At the user's request, Codex designed and wrote an original SVG Blue Horizon badge and integrated it into
+the planning screen, rover and spacecraft. The geometric horizon/return-traverse shield is original
+AI-assisted project artwork, not NASA insignia. Its SVG description records that provenance.
+
+Codex also added a read-only offline F2 science reference and connected instrument-result explanations to
+it. The five tabs distinguish real lunar ice observations, Jezero geology, dust/power-system effects,
+measured LOLA/MOLA elevation and fictional gameplay/model assumptions. Codex wrote the captions, UI,
+pause/focus handoffs, source catalogue and targeted checks. No mission engine or reward rules changed.
+
+Three unedited NASA-published raster references are bundled with visible credit, exact asset/page URLs,
+retrieval date and SHA-256 hashes in `godot/assets/nasa/manifest.json`. They were not generated or edited
+with generative AI. NASA retains the published image processing/annotations, and the game contains them
+without cropping. Measured terrain is separate from those illustrations. NASA has not endorsed the game.
+The earlier statements about no external raster assets describe earlier versions; these three reference
+images are the new external media. Full scope is in `godot/NASA_SCIENCE.md`.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

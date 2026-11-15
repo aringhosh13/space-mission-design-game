@@ -7,7 +7,7 @@ const SECTIONS = [
 		["3. Land", "In flight press L when the Moon is in approach range. T enables landing assist."],
 		["4. Investigate", "Follow the objective and minimap. Drive near a signal, press E to scan, then Q to sample."],
 		["5. Follow the story", "New objectives appear in the centre, then move to the top. Return evidence to the ship."],
-		["Need a reminder?", "F1 opens this guide anywhere. F8 opens sound/music controls. Both pause the game."],
+		["Need a reminder?", "F1 opens controls. F2 opens NASA science and sources. F8 opens audio. Each pauses the game."],
 	]],
 	["Rover", "Driving on the Moon or Mars", [
 		["W / A / S / D or arrows", "Drive relative to the camera."],
@@ -67,6 +67,7 @@ const SECTIONS = [
 	]],
 	["Menus", "Help, audio, story and recovery", [
 		["F1 / Controls button", "Open or close this guide. Escape also closes it."],
+		["F2 / Science & Sources", "Read NASA observations, credited images, terrain sources and what the game simplifies."],
 		["F8 / Audio button", "Music/effects volume and mute. Your settings are saved locally."],
 		["Space / Enter / Escape", "Skip a cinematic. While a tool or guide is open, its own controls take priority."],
 		["Enter during a briefing", "Begin / dismiss the Mission Control card."],
@@ -169,6 +170,8 @@ func toggle() -> void:
 	else: open_guide()
 func open_guide() -> void:
 	if is_open: return
+	var archive: Node = get_node_or_null("/root/ScienceArchive")
+	if archive != null and archive.is_open: archive.close_archive()
 	var audio: Node = get_node_or_null("/root/Soundscape")
 	if audio and audio.settings_open: audio.toggle_settings()
 	_previous_pause = get_tree().paused

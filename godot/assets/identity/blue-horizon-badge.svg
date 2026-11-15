@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Blue Horizon expedition badge</title>
+  <desc>Original AI-assisted vector artwork: a hexagonal shield, rising sun, horizon and a return traverse. Not a NASA identifier.</desc>
+  <path d="M128 12 230 69v118l-102 57L26 187V69Z" fill="#0b202d" stroke="#9ed8cc" stroke-width="6"/>
+  <path d="m128 25 90 51v104l-90 50-90-50V76Z" fill="none" stroke="#345c6c" stroke-width="2"/>
+  <circle cx="151" cy="104" r="31" fill="#efc784"/>
+  <path d="m47 142 47-41 32 28 26-14 57 33v31l-81 45-81-45Z" fill="#284c62"/>
+  <path d="M47 148h162M47 160h162" stroke="#a9dace" stroke-width="3"/>
+  <path d="m76 178 33 11 45-19 27 8" fill="none" stroke="#efc784" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="76" cy="178" r="6" fill="#a9dace"/>
+  <circle cx="181" cy="178" r="6" fill="#a9dace"/>
+  <path d="M78 67v16M70 75h16" stroke="#dce9df" stroke-width="3"/>
+  <circle cx="112" cy="57" r="3" fill="#dce9df"/>
+</svg>

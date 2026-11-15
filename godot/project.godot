@@ -9,6 +9,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 [autoload]
 Soundscape="*res://scripts/audio_director.gd"
 PlayerGuide="*res://scripts/controls_guide.gd"
+ScienceArchive="*res://scripts/science_archive.gd"
 
 [display]
 window/size/viewport_width=1280

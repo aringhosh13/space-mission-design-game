@@ -13,7 +13,7 @@ Each new objective appears large in the centre, holds briefly, then fades/moves 
 | 3. Land | In flight press L when the Moon is in approach range. T enables landing assist. |
 | 4. Investigate | Follow the objective and minimap. Drive near a signal, press E to scan, then Q to sample. |
 | 5. Follow the story | New objectives appear in the centre, then move to the top. Return evidence to the ship. |
-| Need a reminder? | F1 opens this guide anywhere. F8 opens sound/music controls. Both pause the game. |
+| Need a reminder? | F1 opens controls. F2 opens NASA science and sources. F8 opens audio. Each pauses the game. |
 
 ## Driving on the Moon or Mars
 
@@ -91,6 +91,7 @@ Each new objective appears large in the centre, holds briefly, then fades/moves 
 | Press / choose | What happens |
 | --- | --- |
 | F1 / Controls button | Open or close this guide. Escape also closes it. |
+| F2 / Science & Sources | Read NASA observations, credited images, terrain sources and what the game simplifies. |
 | F8 / Audio button | Music/effects volume and mute. Your settings are saved locally. |
 | Space / Enter / Escape | Skip a cinematic. While a tool or guide is open, its own controls take priority. |
 | Enter during a briefing | Begin / dismiss the Mission Control card. |

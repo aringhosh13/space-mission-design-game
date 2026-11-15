@@ -1,0 +1,31 @@
+extends RefCounted
+## The photos illustrate science; only the separate LOLA/MOLA products supply elevation to the game.
+const PHOTO_PAGES = [
+	{
+		"tab": "Moon ice", "title": "A clue is not a confirmed resource",
+		"image": "res://assets/nasa/moon-polar-ice.jpg", "credit": "Image: NASA · Moon Mineralogy Mapper / Chandrayaan-1 · published 20 August 2018",
+		"caption": "Lunar south pole (left) and north pole (right). Blue marks mapped surface-ice detections. This published observation is separate from the game's fictional signals.",
+		"source": "https://www.jpl.nasa.gov/news/ice-confirmed-at-the-moons-poles/",
+		"body": "[b]THE OBSERVATION[/b]\nNASA's Moon Mineralogy Mapper (M³), carried by ISRO's Chandrayaan-1, detected spectral evidence of surface ice in the lunar polar regions. These are patchy detections, not a map of guaranteed mineable deposits.\n\n[b]THE MISSION PROBLEM[/b]\nA promising resource still needs investigation. Cold, shadowed terrain creates difficult access and power choices.\n\n[b]YOUR DECISION IN FIRST LIGHT[/b]\nScan to gather preliminary evidence, then sample to test it. Check your power and your route home. A ruled-out signal is useful science too.\n\n[b]REAL DATA / GAME RULES[/b]\nM³ provides this reference image, not our elevation or resource placement. LOLA provides broad lunar elevation. Our signal sites, confidence percentages and sunlight zone are fictional."
+	},
+	{
+		"tab": "Jezero delta", "title": "Read the rocks before drawing conclusions",
+		"image": "res://assets/nasa/jezero-delta.jpg", "credit": "Image: NASA/JPL-Caltech/LANL/CNES/CNRS/ASU/MSSS · PIA24683, annotated · 2021",
+		"caption": "Perseverance's SuperCam RMI mosaic of Jezero's delta scarp, acquired 17 March 2021. NASA's annotations identify cross-bedding and a conglomerate.",
+		"source": "https://www.nasa.gov/missions/my-favorite-martian-image-jezero-craters-delta-scarp/",
+		"body": "[b]THE OBSERVATION[/b]\nPerseverance imaged layered delta rocks from about 2.25 km away. Sedimentary structures help scientists investigate past environments and choose worthwhile targets for closer study.\n\n[b]THE MISSION PROBLEM[/b]\nAn interesting image does not answer every scientific question. Measurements and physical samples offer different kinds of evidence.\n\n[b]YOUR DECISION IN FIRST LIGHT[/b]\nInvestigate layered terrain, collect a core and bring it back to the Moon base. The sampler's feed and heat controls illustrate careful operation.\n\n[b]REAL DATA / GAME RULES[/b]\nThis is a real observation, not a screenshot of our game. Our delta sites and drill controls are fictional. MOLA supplies broad elevation, not this photograph. The Moon–Mars sample trip is a fictional mission architecture."
+	},
+	{
+		"tab": "Mars dust", "title": "Dust changes the energy budget",
+		"image": "res://assets/nasa/curiosity-dust-comparison.jpg", "credit": "Image: NASA/JPL-Caltech/MSSS · Curiosity Mastcam · PIA22330 · 2018",
+		"caption": "Curiosity's Duluth drill site on sols 2058 (left) and 2084 (right). Dust changed the light reaching the surface. Curiosity itself uses nuclear power.",
+		"source": "https://astrobiology.nasa.gov/news/forecasting-martian-dust-storms/",
+		"body": "[b]THE OBSERVATION[/b]\nDuring the 2018 global dust event, solar-powered Opportunity conserved energy as sunlight diminished. Curiosity, powered by a radioisotope system, remained operational. The comparison shown here is from Curiosity.\n\n[b]THE MISSION PROBLEM[/b]\nPower-system choice changes how a mission responds to its environment. A solar plan must allow for reduced charging.\n\n[b]YOUR DECISION IN FIRST LIGHT[/b]\nWatch the warning, protect your reserve and use the shelter for a recharge or repair. Storms reduce visibility and solar charging in the game.\n\n[b]REAL DATA / GAME RULES[/b]\nOur short storm timing, charging multiplier, shelter services and forgiving recovery are fictional. This photograph illustrates atmospheric dust; it does not measure our local weather or predict a storm."
+	}
+]
+const DATASETS = [
+	["Moon / LRO–LOLA", "LDEM_16 · V3.1\nLRO-L-LOLA-4-GDR-V1.0", "Measured elevation relative to a 1737.4 km reference sphere. The study lab uses physical heights and distances. The globe atlas and compressed Moon terrain use resampled versions.\n\nCredit: NASA/GSFC/LOLA Science Team; NASA PDS Geosciences Node.", "https://pds-geosciences.wustl.edu/missions/lro/lola.htm"],
+	["Mars / MGS–MOLA", "MEGT90N000EB · V2.0\nMGS-M-MOLA-5-MEGDR-L3-V1.0", "Measured topography above the Martian areoid. A resampled Jezero-region patch supplies the lab and broad game relief. This coarse product cannot resolve wheel-level hazards.\n\nCredit: NASA/MGS/MOLA Science Team; NASA PDS Geosciences Node.", "https://pds-geosciences.wustl.edu/missions/mgs/megdr.html"]
+]
+const SCOPE = "[b]WHAT THE PLANNER CHECKS[/b]\nOutward and return distance, sampled slopes and an illustrative energy/reserve budget. A passing candidate satisfies the assumptions you entered. It is not flight approved.\n\n[b]WHAT STILL NEEDS CHECKING[/b]\nRocks, soil slip, detailed illumination, thermal survival and communications. Gameplay compression and fictional fine terrain must not be used for physical route analysis.\n\n[b]THE EXPEDITION[/b]\nFirst Light is a fictional Moon → Mars → Moon-base story, not a reconstruction of a completed NASA sample-return mission. The optional Artemis I Earth-return film is a separate historical reference."
+const IDENTITY = "[b]BLUE HORIZON / FIRST LIGHT[/b]\nAn independent educational project created for the NASA Space Apps Challenge. The horizon-and-return-traverse badge is original project artwork, not a NASA logo or mission patch. NASA has not endorsed this game.\n\n[b]NASA CONTENT[/b]\nThe three credited science images are NASA-published reference material. They are bundled for offline educational use; no generative image edits were made. NASA observations and elevation products remain distinct from our fictional world and balancing values.\n\n[b]AI-ASSISTED DEVELOPMENT[/b]\nThe team used Codex and Claude Code in development. Code, the original vector badge, procedural visuals and synthesized audio were developed with AI assistance. NASA images and measured terrain observations were not generated by AI. Full contributions and provenance are recorded in AI_USAGE.md and the bundled source notes."

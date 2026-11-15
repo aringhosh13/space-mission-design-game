@@ -15,6 +15,7 @@ var slider: HSlider
 var progress: ProgressBar
 var assist_button: Button
 var primary: Button
+var science: Button
 var mode: String = "scan"
 var stage: String = "idle"
 var instrument: Dictionary = {}
@@ -68,6 +69,8 @@ func _ready() -> void:
 	primary.button_down.connect(func() -> void: _button_held = true)
 	primary.button_up.connect(func() -> void: _button_held = false)
 	button("RETURN [ESC]", Vector2(820, 537), Vector2(190, 36), close)
+	science = button("WHY THIS MATTERS / NASA SCIENCE [F2]", Vector2(270, 441), Vector2(740, 34), func() -> void: get_node("/root/ScienceArchive").open_archive())
+	science.visible = false
 	label("Illustrative game controls and thresholds · evidence and energy come from the mission simulation", Vector2(270, 584), Vector2(740, 20), 10)
 	root.visible = false
 	set_process(false)
@@ -97,6 +100,7 @@ func open(action: String, details: Dictionary) -> void:
 	context = details.duplicate(true)
 	instrument = Instrument.create(action, int(details.get("seed", 0)))
 	stage = "operate"
+	science.visible = false
 	assisted = false
 	_committed = false
 	_button_held = false
@@ -183,13 +187,14 @@ func show_result(value: String) -> void:
 	_wait_release = _button_held
 	_button_held = false
 	stage = "result"
+	science.visible = true
 	Sound.tool(self, "")
 	scope.visible = false
 	slider.visible = false
 	progress.visible = false
 	assist_button.visible = false
 	instruction.position.y = 270
-	instruction.size.y = 172
+	instruction.size.y = 156
 	instruction.text = value
 	status.text = "Your evidence is recorded by the mission simulation. Ruling out a signal is useful science too."
 	primary.disabled = false

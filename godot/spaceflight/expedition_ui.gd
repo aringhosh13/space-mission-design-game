@@ -9,6 +9,7 @@ const SOFT := Color("c5d2d0")
 const DIM := Color("8fa6ae")
 const AMBER := Color("f3c582")
 const WARN := Color("ff9b6b")
+const Identity = preload("res://scripts/mission_identity.gd")
 
 var overlay: Panel
 var content: VBoxContainer
@@ -17,6 +18,7 @@ var advice_label: Label
 var start_button: Button
 var options: Dictionary = {}
 var active: String = ""
+var identity_card: Control
 
 func _ready() -> void:
 	layer = 10
@@ -45,6 +47,33 @@ func _ready() -> void:
 	content.position = Vector2.ZERO
 	content.custom_minimum_size.x = 700
 	scroll.add_child(content)
+	identity_card = VBoxContainer.new()
+	identity_card.position = Vector2(850, 70)
+	identity_card.size = Vector2(340, 440)
+	identity_card.add_theme_constant_override("separation", 14)
+	overlay.add_child(identity_card)
+	var badge := TextureRect.new()
+	badge.texture = Identity.BADGE
+	badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	badge.custom_minimum_size = Vector2(300, 240)
+	identity_card.add_child(badge)
+	var name_label := Label.new()
+	name_label.text = "FIRST LIGHT / EXPEDITION CREW"
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 17)
+	identity_card.add_child(name_label)
+	var science := Button.new()
+	science.text = "NASA SCIENCE & SOURCES [F2]"
+	science.custom_minimum_size.y = 42
+	science.pressed.connect(func() -> void: get_node("/root/ScienceArchive").open_archive())
+	identity_card.add_child(science)
+	var disclosure := Label.new()
+	disclosure.text = "Independent educational game\nOriginal Blue Horizon badge\nNASA observations, clearly credited"
+	disclosure.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	disclosure.add_theme_font_size_override("font_size", 14)
+	disclosure.add_theme_color_override("font_color", DIM)
+	identity_card.add_child(disclosure)
 	hide_screen()
 
 func _style(background: Color, border: Color) -> StyleBoxFlat:
@@ -88,6 +117,7 @@ func _clear(name: String) -> void:
 		child.queue_free()
 	overlay.visible = true
 	active = name
+	identity_card.visible = name == "planning"
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func hide_screen() -> void:
