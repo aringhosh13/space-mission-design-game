@@ -1,5 +1,11 @@
 # Blue Horizon — native Godot game
 
+**Interactive field missions and audio:** E tunes a scanner, Q operates a core sampler, and B opens a
+power/return assessment before station deployment. Tasks explain their actual result and next step.
+A enables instrument assist; Escape cancels without a new action charge. The original ambient soundtrack,
+instrument/vehicle cues and Mars storm ambience have separate volume controls and mute under **Audio [F8]**.
+Read [controls, scientific scope and checks](INTERACTIVE_MISSIONS.md).
+
 **First Light campaign:** open `scenes/spaceflight/campaign.tscn` and press F6, or use the Windows package's
 `Play First Light.cmd` (`BlueHorizon.exe -- --campaign`). Its twelve objectives include manual landing,
 Moon surveys, Mars sample collection, storms, repairs and checkpoint recovery. Read

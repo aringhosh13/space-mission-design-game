@@ -55,6 +55,29 @@ func tap(code: Key) -> void:
 	key(code, true)
 	key(code, false)
 	await frames(3)
+	if code in [KEY_E, KEY_Q, KEY_B] and game.current != null and "operation" in game.current:
+		var operation: Node = game.current.operation
+		if operation != null and operation.is_open():
+			if operation.mode == "deploy":
+				key(KEY_ENTER, true)
+				key(KEY_ENTER, false)
+			else:
+				for i in range(900):
+					if operation.stage == "result": break
+					if operation.mode == "scan":
+						var error: float = operation.slider.value / 100 - float(operation.instrument.target)
+						key(KEY_LEFT, error > 0.015)
+						key(KEY_RIGHT, error < -0.015)
+					key(KEY_SPACE, true)
+					await physics_frame
+				key(KEY_SPACE, false)
+				key(KEY_LEFT, false)
+				key(KEY_RIGHT, false)
+			await frames(3)
+			check(operation.stage == "result", "Hands-on operation completes through player controls: " + operation.mode)
+			key(KEY_ENTER, true)
+			key(KEY_ENTER, false)
+			await frames(3)
 
 func capture(name: String) -> void:
 	if capture_dir.is_empty() or DisplayServer.get_name() == "headless": return
@@ -248,6 +271,8 @@ func _run() -> void:
 						check(game.debrief_film.chapter.text.contains("ARTEMIS I (2022)"), "Earth-return explanation identifies the real reference mission")
 						game.debrief_film.stop("skipped")
 						check(Expedition.report(game.expedition) == report, "Historical reference does not award a fictional Earth delivery")
+	var soundtrack: Node = root.get_node_or_null("Soundscape")
+	check(soundtrack != null and soundtrack.music_player.playing, "Ambient soundtrack remains active through the complete mission")
 	game.queue_free()
 	await frames(2)
 	OS.remove_logger(catcher)

@@ -32,6 +32,8 @@ const SpaceSky = preload("res://spaceflight/space_sky.gd")
 const ShipRig = preload("res://spaceflight/ship_rig.gd")
 const TraverseLab = preload("res://scripts/traverse_lab.gd")
 const Cinematic = preload("res://scripts/mission_cinematic.gd")
+const Sound = preload("res://scripts/audio_feedback.gd")
+var _checkpoint_count: int = 0
 var study_planner: CanvasLayer
 var debrief_film: CanvasLayer
 var _pending_campaign_start: bool = false
@@ -112,6 +114,16 @@ func _process(delta: float) -> void:
 		var rig: Node3D = current.get_meta("rig")
 		rig.rotation.y += delta * 0.25
 		rig.rotation.z = sin(_backdrop_clock * 0.5) * 0.08
+	var audio: Node = get_node_or_null("/root/Soundscape")
+	if audio:
+		var speed: float = 0
+		var thrust: float = float(expedition.get("ship", {}).get("throttle", 0))
+		if current != null and "rover" in current and current.rover != null: speed = current.rover.velocity.length()
+		if expedition.get("phase", "") == "landing": thrust = float(expedition.get("landing", {}).get("throttle", 0))
+		var weather: Dictionary = expedition.get("missions", {}).get(expedition.get("location", ""), {}).get("weather", {})
+		var stopped: bool = current != null and "paused" in current and current.paused
+		audio.update_context(str(expedition.get("phase", "planning")), str(expedition.get("location", "")), stopped,
+			speed, thrust, weather.get("phase", "") == "storm")
 
 func _review(config: Dictionary, fuel_load: String) -> Dictionary:
 	return Campaign.review(config, fuel_load) if campaign_mode else Expedition.review(config, fuel_load)
@@ -204,6 +216,9 @@ func _campaign_tick() -> void:
 	var location: String = str(expedition.location)
 	var before: Dictionary = expedition.missions.get(location, {})
 	expedition = Campaign.evaluate(expedition)
+	if expedition.campaign.completed.size() > _checkpoint_count:
+		_checkpoint_count = expedition.campaign.completed.size()
+		Sound.cue(self, "checkpoint")
 	if int(expedition.campaign.message_id) != _message_id:
 		_message_id = int(expedition.campaign.message_id)
 		if not mission_control.briefing_open: mission_control.say(str(expedition.campaign.message))
@@ -429,6 +444,7 @@ func recover() -> void:
 	_campaign_tick()
 
 func finish() -> void:
+	if current and current.has_method("cancel_operation"): current.cancel_operation()
 	var was_complete: bool = expedition.get("phase", "") == "complete"
 	_cancel_transition()
 	expedition = Expedition.finish(expedition)

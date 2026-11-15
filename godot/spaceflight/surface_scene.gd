@@ -29,6 +29,11 @@ const Beacons = preload("res://spaceflight/checkpoint_beacons.gd")
 const MoonAtlas = preload("res://scripts/moon_atlas.gd")
 const WorldLabels = preload("res://scripts/world_labels.gd")
 const TraverseLab = preload("res://scripts/traverse_lab.gd")
+const FieldConsole = preload("res://scripts/field_console.gd")
+const Sound = preload("res://scripts/audio_feedback.gd")
+var operation: CanvasLayer
+var _operation_previous_pause: bool = false
+var _operation_site: String = ""
 var planner: CanvasLayer
 var _planner_previous_pause: bool = false
 ## Legacy lunar terrain half-size (Codex's lunar_world.gd before configure_extent exists).
@@ -96,7 +101,7 @@ func _ready() -> void:
 		if paused: return
 		if action == "plan": toggle_planner()
 		elif action == "board": try_board()
-		else: act(action))
+		else: request_action(action))
 	_sync()
 
 func board_distance() -> float:
@@ -125,10 +130,72 @@ func try_board() -> bool:
 
 func act(action: String) -> void:
 	if paused: return
+	var before: Dictionary = state
 	state = engine.act(state, action)
+	if state.science_collected > before.science_collected or state.outpost_deployed != before.outpost_deployed:
+		Sound.cue(self, "confirm")
+	elif state.energy != before.energy or state.science_returned != before.science_returned: Sound.cue(self, "click")
+	else: Sound.cue(self, "warning")
 	if action == "scan" and state.phase == "surface": world.pulse(rover.global_position)
 	mission_changed.emit(state)
 	_sync()
+
+## Human actions use a hands-on tool; act() remains the authoritative integration entry point.
+func request_action(action: String) -> void:
+	if paused or state.phase != "surface": return
+	if action not in ["scan", "sample", "deploy"]:
+		act(action)
+		return
+	var candidate: Dictionary = engine.act(state, action)
+	var valid: bool = candidate.science_collected > state.science_collected or candidate.outpost_deployed != state.outpost_deployed
+	if not valid and action != "deploy":
+		act(action)
+		return
+	if action == "deploy" and state.outpost_deployed:
+		act(action)
+		return
+	if operation == null:
+		operation = FieldConsole.new()
+		operation.commit_requested.connect(_commit_operation)
+		operation.closed.connect(func() -> void:
+			paused = _operation_previous_pause
+			_sync())
+		add_child(operation)
+	var site: Dictionary = MissionEngine.site_in_range(state.position, state.sites, float(rules.interaction_range))
+	_operation_site = str(site.get("id", ""))
+	var cost: float = float(rules.get({"scan":"scan_energy", "sample":"sample_energy", "deploy":"deploy_energy"}[action], 0))
+	var return_cost: float = board_distance() * float(rules.move_energy_per_m) * MissionEngine.movement_multiplier(state)
+	var reserve_energy: float = float(state.max_energy) * 0.2
+	var after: float = float(state.energy) - cost
+	var assessment: String = "SITE: %s\nBattery now: %.1f  /  deploy cost: %.1f  /  after deployment: %.1f\nStraight-line drive to ship: %.0f m  /  estimated cost: %.1f\nSuggested 20%% reserve: %.1f  /  %s\n\nThis game estimate excludes detours and charging. Return to the rover to choose another location." % [
+		"sunlit in the game model" if MissionEngine.is_lit(state.position, rules) else "SHADOW — solar station cannot operate here",
+		state.energy, cost, after, board_distance(), return_cost, reserve_energy,
+		"budget covers this estimate + reserve" if after >= return_cost + reserve_energy else "recharge or move before committing; return budget is tight"]
+	_operation_previous_pause = paused
+	paused = true
+	rover.velocity = Vector3.ZERO
+	_sync()
+	operation.open(action, {"name": site.get("name", "SITE"), "seed": int(state.seed) + _operation_site.hash(),
+		"cost": cost, "can_commit": valid, "assessment": assessment})
+
+func _commit_operation(action: String) -> void:
+	# Re-check site, phase, position and resources through the engine. UI never writes science/confidence.
+	var site: Dictionary = MissionEngine.site_in_range(state.position, state.sites, float(rules.interaction_range))
+	if state.phase != "surface" or (action != "deploy" and str(site.get("id", "")) != _operation_site):
+		operation.close()
+		return
+	paused = false
+	act(action)
+	paused = true
+	_sync()
+	var next: String = "Next: return evidence to the ship, or choose another investigation."
+	if action == "scan": next = "Solution: a stable measurement gives preliminary evidence, not proof. Use Q to collect a core if you want to test the finding."
+	elif action == "sample": next = "Solution: characterise the sample even if the signal is ruled out. On Mars, board the ship and fly the core home before its science counts."
+	else: next = "Solution: deploy where power is available while retaining a path home. The station position is saved; avoid its solid hardware when driving."
+	operation.show_result(str(state.log[0]) + "\n\n" + next + "\n\nRover power remaining: %.1f / %.1f." % [state.energy, state.max_energy])
+
+func cancel_operation() -> void:
+	if operation != null and operation.is_open(): operation.close()
 
 func _on_move(proposed: Vector3) -> void:
 	if state.phase != "surface" or paused: return
@@ -178,7 +245,9 @@ func _on_survey_selected(latitude: float, longitude: float) -> void:
 
 func report_impact(impact_speed: float) -> void:
 	if paused: return
+	var before: float = float(state.get("integrity", 100))
 	state = engine.apply_impact(state, impact_speed)
+	if float(state.get("integrity", 100)) < before: Sound.cue(self, "impact")
 	mission_changed.emit(state)
 	_sync()
 
@@ -195,6 +264,7 @@ func set_checkpoints(checkpoints: Array) -> void:
 
 ## Replace the mission state from outside (campaign recovery) and move the rover to match.
 func apply_state(next: Dictionary) -> void:
+	cancel_operation()
 	state = next.duplicate(true)
 	var p: Vector3 = state.position
 	rover.global_position = Vector3(p.x, world.terrain_height(p.x, p.z) + 0.6, p.z)
@@ -208,6 +278,9 @@ func _physics_process(delta: float) -> void:
 	if phase != _weather_phase:
 		_weather_phase = phase
 		if world.has_method("set_weather"): world.set_weather(state.get("weather", {}))
+		if phase == "warning":
+			Sound.cue(self, "warning")
+			hud.flash("Dust warning: check your power reserve. Shelter offers charging and free repairs.")
 
 func _sync() -> void:
 	world.update_mission(state)
@@ -246,7 +319,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if paused or state.phase != "surface": return
 	var actions: Dictionary = {KEY_E: "scan", KEY_Q: "sample", KEY_R: "recharge", KEY_T: "transmit", KEY_B: "deploy"}
-	if actions.has(event.physical_keycode): act(actions[event.physical_keycode])
+	if actions.has(event.physical_keycode): request_action(actions[event.physical_keycode])
 	elif event.physical_keycode == KEY_G: try_board()
 	elif event.physical_keycode == KEY_H: repair()
 	elif event.physical_keycode == KEY_P: toggle_planner()

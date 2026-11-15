@@ -212,6 +212,21 @@ replicas. Exact NASA sources were read directly and are documented in godot/EART
 logos, raster assets, voiceover or other external media was added. It does not depict the fictional Mars
 ship as a real NASA Earth-return mission or change the campaign state.
 
+## Codex interactive mission instruments and original audio
+
+Codex subsequently added hands-on scanner tuning, illustrative drill-feed/heat control and a local
+station power/return decision to human surface actions. Results explain the actual simulation finding
+and next action. The authoritative engine still applies the same action costs/rewards once; controls
+never determine hidden truth. New tests cover manual input, assist, cancellation/recovery, duplication,
+constraints and audio pause/mute. The full-route driver now operates the tools through player controls.
+
+Codex composed and synthesised an original ambient score and feedback effects using the deterministic
+standard-library generator in godot/tools/generate_audio.py, then added contextual playback and persistent
+volume/mute controls. No outside recordings, licensed songs, NASA audio, voiceover or external libraries
+were used. All audio is optional and every state has visual feedback. The measured NASA terrain and prior
+credits are retained. Scientific inspiration and exact sources checked on 2026-11-15 are documented in
+godot/INTERACTIVE_MISSIONS.md; instrument thresholds and local operational estimates are fictional.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect
