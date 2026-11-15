@@ -10,6 +10,14 @@ distance- and energy-weighted return traverses on raw NASA LOLA/MOLA elevation, 
 model and exports planetary GeoJSON candidates. Read [scope, sources and limitations](ROUTE_PLANNING.md).
 This is a regional screening prototype, not a flight-validated operations system.
 
+**Cinematic story flow:** Begin First Light opens a skippable 18-second native 3D problem briefing,
+then hands control to the NASA-data planning lab. Find a candidate that fits the stated constraints and
+choose **Present This Plan**. Its short presentation explains the selected route's actual calculated
+energy/reserve and slope values before starting the fictional field campaign. A closing cinematic uses
+the expedition's actual results, including an honest incomplete outcome if ended early.
+Space, Enter or Escape skips a cinematic; **Replay Briefing** repeats the introduction.
+Read [the cinematic flow and checks](CINEMATICS.md).
+
 The compact campaign surface HUD restores the circular minimap and clickable scan/sample/power/transmit/
 station/boarding controls. Signal letters match the map, H marks the ship, and a ring marks the active
 checkpoint. Full notes and the same recent mission-log messages remain available in scrollable compact

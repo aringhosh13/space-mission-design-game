@@ -47,6 +47,7 @@ func _run() -> void:
 		var previous: Dictionary = scene.state.duplicate(true)
 		scene.toggle_planner()
 		await frames(10)
+		scene.planner.film.stop("skipped")
 		check(scene.paused and not scene.rover.driving, "Planning must pause driving")
 		check(scene.state == previous, "Planning must not change mission resources")
 		check(scene.planner.selected.outbound.size() > 1, "NASA planner must produce a candidate")

@@ -172,7 +172,8 @@ func _run() -> void:
 	game = load("res://scenes/spaceflight/campaign.tscn").instantiate()
 	root.add_child(game)
 	await frames(5)
-	game.ui.choice.emit("start", "")
+	# Cinematic/menu onboarding is covered separately; this fixture drives the actual full field mission.
+	game.start(game._config, game._fuel_load)
 	await frames(10)
 	check(game.mission_control.briefing_open, "Briefing shown at the start")
 	await capture("01-briefing")
@@ -234,6 +235,12 @@ func _run() -> void:
 						check(report.home and report.delivered_science == 35, "One Mars core (35 science) delivered at home")
 						check(report.science_returned == 30 + 20 + 35, "Returned science: 30 Moon + 20 Mars data + 35 core (got %d)" % report.science_returned)
 						check(game.ui.active == "report", "Debrief shown")
+						check(game.debrief_film.playing and game.debrief_film.heading.text == "EVIDENCE RETURNED", "Completed campaign gets its closing cinematic")
+						check(game.debrief_film.caption.text.contains("12 of 12 objectives") and game.debrief_film.caption.text.contains("%d science returned" % report.science_returned), "Closing cinematic uses actual completed objectives and returned science")
+						game.debrief_film.elapsed = 18.0
+						game.debrief_film._process(0)
+						check(not game.debrief_film.playing and game.ui.active == "report", "Closing cinematic naturally completes into the report")
+						check(Expedition.report(game.expedition) == report, "Closing presentation cannot change mission results")
 	game.queue_free()
 	await frames(2)
 	OS.remove_logger(catcher)

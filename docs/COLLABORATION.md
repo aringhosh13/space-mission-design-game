@@ -2,6 +2,12 @@
 
 ## Current work: NASA campaign
 
+2026-11-15 update: Claude is inactive and the user has assigned Codex the whole project. The combined
+`codex/native-integration` baseline includes measured MOLA Mars relief, the NASA traverse planning lab,
+compact HUD/minimap and world-label decluttering. The cinematic update adds a problem briefing,
+candidate-plan explanation and actual-results closing scene. Earlier ownership/task notes below are
+historical; NASA-derived Mars terrain is now implemented. Human difficulty/feel playtesting remains needed.
+
 First Light from PR #5 is integrated on `codex/first-light`. The old expedition landing helper now exercises
 the new descent with assist; the separate campaign route exercises manual descent and all twelve objectives.
 The Windows preview has a dedicated campaign launcher. Human playtesting and NASA-derived Mars terrain

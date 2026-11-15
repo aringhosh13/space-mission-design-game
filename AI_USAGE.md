@@ -183,6 +183,20 @@ Codex also fixed collocated checkpoint labels, screen-space world-label overlap,
 navigation-tag placement. Full objective/site information remains in the compact HUD. No claim is made that
 all possible bugs have been eliminated. Scenery details and numerical tuning remain fictional where labelled.
 
+## Codex cinematic problem-to-solution story
+
+At the user's request, Codex added native Godot 3D camera sequences for the rover return-planning problem,
+the player's candidate-plan explanation and the actual campaign results. Codex wrote the presentation code,
+captions, menu/lab handoff, validation gate, cancellation/focus handling and integration checks. The selected
+candidate is copied for presentation and its actual calculated values are displayed. Closing captions use
+the real expedition report and do not claim success for an unfinished campaign. The field-route test retains
+its objectives and now checks the completed closing scene and unchanged results; onboarding has a separate
+real-menu test. No mission scoring or resource rules changed.
+
+Cinematic relief uses existing measured NASA LOLA/MOLA data, compressed for illustration. Models, camera
+paths, story and equipment visuals are fictional and AI-assisted code; these are not NASA mission footage.
+No external or AI-generated raster, audio or video media are bundled. See godot/CINEMATICS.md for scope.
+
 ## Before submission (native and browser reference)
 
 Record Claude's engine contributions here. List actual NASA datasets/resources and where they affect

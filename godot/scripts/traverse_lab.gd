@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## Regional decision-support prototype using unscaled NASA DEMs, separate from fictional game physics.
 signal close_requested
+signal solution_presented(plan: Dictionary)
+const Cinematic = preload("res://scripts/mission_cinematic.gd")
 const Planner = preload("res://simulation/traverse_planner.gd")
 const MapView = preload("res://scripts/route_map.gd")
 const MOON = preload("res://data/terrain/lola_south_pole.tres")
@@ -19,6 +21,10 @@ var start := Vector2(0.5, 0.5)
 var goal := Vector2(0.78, 0.32)
 var data: Resource
 var body_choice: OptionButton
+var film: CanvasLayer
+var present_button: Button
+var _intro_seen: bool = false
+var _presented_snapshot: Dictionary = {}
 
 func _ready() -> void:
 	layer = 32
@@ -51,12 +57,17 @@ func _ready() -> void:
 	slope = spin("Slope limit (degrees)", 166, 1, 45, 15, 0.5)
 	battery = spin("Battery capacity (Wh)", 209, 100, 50000, 10000, 100)
 	reserve = spin("Reserve (%)", 252, 0, 80, 20, 5)
-	button("COMPARE ROUTES", Vector2(570, 306), recompute)
-	button("EXPORT ROUTE GEOJSON", Vector2(890, 306), export_route)
+	button("COMPARE ROUTES", Vector2(570, 306), recompute, Vector2(200, 42))
+	button("EXPORT GEOJSON", Vector2(785, 306), export_route, Vector2(210, 42))
+	present_button = button("PRESENT THIS PLAN", Vector2(1010, 306), present_solution, Vector2(220, 42))
 	report = label("", Vector2(570, 362), Vector2(660, 205), 16)
 	label("Illustrative power model: 0.02 Wh/m + 20 W idle, 0.2 m/s, uphill penalty ×10.\nNo real illumination, rocks, wheel slip, thermal survival or communication checks.\nCoarse DEM + 2.34 km grid: unsuitable for final rover driving commands.\nSlope default 15° is informed by NASA's VIPER design description.", Vector2(570, 580), Vector2(665, 90), 12)
 	status = label("", Vector2(30, 681), Vector2(1040, 26), 12)
 	button("RETURN [P / ESC]", Vector2(1040, 24), func() -> void: close_requested.emit(), Vector2(210, 40))
+	button("REPLAY BRIEFING", Vector2(820, 24), show_problem, Vector2(200, 40))
+	film = Cinematic.new()
+	film.finished.connect(_on_film_finished)
+	add_child(film)
 	root.visible = false
 
 func label(text: String, at: Vector2, extent: Vector2, font_size: int) -> Label:
@@ -84,13 +95,14 @@ func spin(text: String, y: float, low: float, high: float, value: float, step_si
 	root.add_child(item)
 	return item
 
-func button(text: String, at: Vector2, action: Callable, extent: Vector2 = Vector2(300, 42)) -> void:
+func button(text: String, at: Vector2, action: Callable, extent: Vector2 = Vector2(300, 42)) -> Button:
 	var item := Button.new()
 	item.text = text
 	item.position = at
 	item.size = extent
 	item.pressed.connect(action)
 	root.add_child(item)
+	return item
 
 func open(body: String) -> void:
 	map_body = body
@@ -99,17 +111,40 @@ func open(body: String) -> void:
 	root.visible = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	recompute()
+	if not _intro_seen: show_problem()
 
 func is_open() -> bool:
 	return root != null and root.visible
 
 func close() -> void:
+	film.stop("cancelled")
 	root.visible = false
+
+func show_problem() -> void:
+	_intro_seen = true
+	film.play("problem", {"body": map_body})
+
+func present_solution() -> void:
+	if film.playing: return
+	if not selected.get("feasible", false) or selected.get("outbound", []).size() < 2:
+		status.text = "First find a candidate that meets the slope, return-energy and reserve constraints."
+		return
+	_presented_snapshot = selected.duplicate(true)
+	film.play("solution", {"body": map_body, "plan": _presented_snapshot})
+
+func _on_film_finished(reason: String) -> void:
+	if reason == "cancelled": return
+	if film.kind == "solution":
+		status.text = "Candidate presented. Export it for further reconnaissance; it is not a flight-approved route."
+		solution_presented.emit(_presented_snapshot.duplicate(true))
+	else:
+		status.text = "Your turn: choose study points, compare routes and present a candidate that fits the stated constraints."
 
 func recompute() -> void:
 	if data == null or report == null: return
 	var shortest: Dictionary = Planner.plan(data, start, goal, slope.value, battery.value, reserve.value / 100, false)
 	selected = Planner.plan(data, start, goal, slope.value, battery.value, reserve.value / 100, true)
+	present_button.disabled = not selected.feasible
 	source.text = "%s · %s\nPhysical patch: 150 × 150 km. Elevation values remain unscaled." % [map_body.to_upper(), data.source_product]
 	report.text = "SHORTEST GRID ROUTE (BOTH LEGS)\n%.1f km · %.0f Wh · max sampled slope %.1f°\nENERGY-WEIGHTED (BOTH LEGS)\n%.1f km · %.0f Wh · max sampled slope %.1f°\n\n%s\n%s" % [shortest.distance_m / 1000, shortest.energy_wh, shortest.max_slope_deg,
 		selected.distance_m / 1000, selected.energy_wh, selected.max_slope_deg, "WITHIN MODEL BUDGET" if selected.feasible else "NOT FEASIBLE UNDER THESE ASSUMPTIONS", selected.reason]

@@ -31,7 +31,10 @@ const MissionControl = preload("res://spaceflight/mission_control.gd")
 const SpaceSky = preload("res://spaceflight/space_sky.gd")
 const ShipRig = preload("res://spaceflight/ship_rig.gd")
 const TraverseLab = preload("res://scripts/traverse_lab.gd")
+const Cinematic = preload("res://scripts/mission_cinematic.gd")
 var study_planner: CanvasLayer
+var debrief_film: CanvasLayer
+var _pending_campaign_start: bool = false
 
 signal phase_changed(phase: String)
 
@@ -121,12 +124,14 @@ func _on_config(config: Dictionary, fuel_load: String) -> void:
 func _on_choice(action: String, argument: String) -> void:
 	match action:
 		"planner":
-			if study_planner == null:
-				study_planner = TraverseLab.new()
-				study_planner.close_requested.connect(func() -> void: study_planner.close())
-				add_child(study_planner)
-			study_planner.open("moon")
-		"start": start(_config, _fuel_load)
+			_pending_campaign_start = false
+			_open_study()
+		"start":
+			if campaign_mode:
+				if not _review(_config, _fuel_load).warnings.is_empty(): return
+				_pending_campaign_start = true
+				_open_study()
+			else: start(_config, _fuel_load)
 		"takeoff": takeoff(argument)
 		"disembark": disembark()
 		"finish": finish()
@@ -137,6 +142,20 @@ func _on_choice(action: String, argument: String) -> void:
 			get_tree().set_meta("blue_horizon_expedition_seed", expedition_seed + 1)
 			get_tree().reload_current_scene()
 		"quit": get_tree().quit()
+
+func _open_study() -> void:
+	if study_planner == null:
+		study_planner = TraverseLab.new()
+		study_planner.close_requested.connect(func() -> void:
+			_pending_campaign_start = false
+			study_planner.close())
+		study_planner.solution_presented.connect(func(_plan: Dictionary) -> void:
+			if not _pending_campaign_start: return
+			_pending_campaign_start = false
+			study_planner.close()
+			if start(_config, _fuel_load): mission_control.close_briefing())
+		add_child(study_planner)
+	study_planner.open("moon")
 
 func start(config: Dictionary, fuel_load: String) -> bool:
 	if campaign_mode:
@@ -404,11 +423,19 @@ func recover() -> void:
 	_campaign_tick()
 
 func finish() -> void:
+	var was_complete: bool = expedition.get("phase", "") == "complete"
 	_cancel_transition()
 	expedition = Expedition.finish(expedition)
 	_campaign_tick()
 	if current and "paused" in current: current.paused = true
 	ui.show_report(Expedition.report(expedition), Campaign.summary(expedition))
+	if campaign_mode and not was_complete:
+		if debrief_film == null:
+			debrief_film = Cinematic.new()
+			add_child(debrief_film)
+		var summary: Dictionary = Campaign.summary(expedition)
+		debrief_film.play("debrief", {"body": expedition.get("location", "moon"), "report": Expedition.report(expedition),
+			"complete": summary.get("complete", false), "completed": summary.get("completed", 0), "total": summary.get("total", 12)})
 	phase_changed.emit(expedition.phase)
 
 func _pause() -> void:
